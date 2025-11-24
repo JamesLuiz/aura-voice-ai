@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
-import robotAvatar from "@/assets/robot-avatar.png";
 import ParticleField from "@/components/ParticleField";
 import SoundWaveVisualization from "@/components/SoundWaveVisualization";
+import CustomRobotFace from "@/components/CustomRobotFace";
 
 export type RobotState = "idle" | "listening" | "thinking" | "speaking" | "processing" | "error";
 export type EmotionalState = "neutral" | "happy" | "thinking" | "confused" | "surprised";
@@ -201,7 +201,7 @@ const RobotAvatar = ({
 
       {/* Main robot container with head movements */}
       <motion.div
-        className="relative w-48 h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 rounded-full overflow-hidden"
+        className="relative w-48 h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 rounded-full overflow-hidden flex items-center justify-center"
         style={{
           background: 'radial-gradient(circle at center, hsl(222 40% 12%), hsl(222 47% 8%))',
           boxShadow: getStateBorder(),
@@ -228,11 +228,9 @@ const RobotAvatar = ({
           },
         }}
       >
-        {/* Robot image */}
-        <motion.img
-          src={robotAvatar}
-          alt="Voxa AI Assistant Robot"
-          className="w-full h-full object-cover"
+        {/* Custom SVG Robot Face */}
+        <motion.div
+          className="w-full h-full"
           animate={{
             y: isConnected ? [0, -5, 0] : 0,
           }}
@@ -241,194 +239,21 @@ const RobotAvatar = ({
             repeat: Infinity,
             ease: "easeInOut",
           }}
-        />
-
-        {/* Enhanced Lip Sync - Mouth Movement */}
-        {isSpeaking && (
-          <>
-            {/* Main mouth opening */}
-            <motion.div
-              className="absolute bottom-[35%] left-1/2 -translate-x-1/2 w-12 h-6 rounded-full overflow-hidden"
-              style={{
-                background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)',
-              }}
-              animate={{
-                scaleY: lipSyncScale,
-                scaleX: 1 + audioLevel * 0.15,
-              }}
-              transition={{
-                scaleY: { duration: 0.08, ease: "easeOut" },
-                scaleX: { duration: 0.1, ease: "easeOut" },
-              }}
-            />
-            
-            {/* Inner mouth glow */}
-            <motion.div
-              className="absolute bottom-[35%] left-1/2 -translate-x-1/2 w-10 h-4 rounded-full bg-primary/60 blur-sm"
-              animate={{
-                scaleY: lipSyncScale * 0.8,
-                opacity: [0.3 + audioLevel * 0.3, 0.6 + audioLevel * 0.4, 0.3 + audioLevel * 0.3],
-              }}
-              transition={{
-                scaleY: { duration: 0.08 },
-                opacity: { duration: 0.12, repeat: Infinity },
-              }}
-            />
-
-            {/* Speech particles from mouth */}
-            <motion.div
-              className="absolute bottom-[35%] left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-primary/80"
-              animate={{
-                y: [-5, -25],
-                x: [0, (Math.random() - 0.5) * 20],
-                opacity: [0.8, 0],
-                scale: [1, 0.5],
-              }}
-              transition={{
-                duration: 0.5,
-                repeat: Infinity,
-                repeatDelay: 0.1,
-              }}
-            />
-          </>
-        )}
-
-        {/* Eye Tracking and Blinking */}
-        {isConnected && (
-          <>
-            {/* Left eye pupil */}
-            <motion.div
-              className="absolute top-[35%] left-[38%] w-4 h-4 rounded-full bg-primary"
-              style={{
-                boxShadow: "0 0 10px hsl(var(--primary))",
-              }}
-              animate={{
-                x: finalEyePosition.x,
-                y: finalEyePosition.y,
-                scale: emotionalState === "surprised" ? 1.3 : 1,
-              }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            />
-            
-            {/* Right eye pupil */}
-            <motion.div
-              className="absolute top-[35%] right-[38%] w-4 h-4 rounded-full bg-primary"
-              style={{
-                boxShadow: "0 0 10px hsl(var(--primary))",
-              }}
-              animate={{
-                x: finalEyePosition.x,
-                y: finalEyePosition.y,
-                scale: emotionalState === "surprised" ? 1.3 : 1,
-              }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            />
-            
-            {/* Left eye blink */}
-            <motion.div
-              className="absolute top-[35%] left-[38%] w-8 h-1 bg-background/90 rounded-full"
-              initial={{ scaleY: 0, opacity: 0 }}
-              animate={{
-                scaleY: isBlinking ? 8 : 0,
-                opacity: isBlinking ? 1 : 0,
-              }}
-              transition={{ duration: 0.1 }}
-            />
-            
-            {/* Right eye blink */}
-            <motion.div
-              className="absolute top-[35%] right-[38%] w-8 h-1 bg-background/90 rounded-full"
-              initial={{ scaleY: 0, opacity: 0 }}
-              animate={{
-                scaleY: isBlinking ? 8 : 0,
-                opacity: isBlinking ? 1 : 0,
-              }}
-              transition={{ duration: 0.1 }}
-            />
-          </>
-        )}
-
-        {/* Facial Expression Overlays */}
-        {isConnected && (
-          <>
-            {/* Happy expression - smile */}
-            {emotionalState === "happy" && (
-              <motion.div
-                className="absolute bottom-[30%] left-1/2 -translate-x-1/2 w-20 h-10"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <svg viewBox="0 0 100 50" className="w-full h-full">
-                  <path
-                    d="M 20 20 Q 50 40, 80 20"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth="3"
-                    fill="none"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </motion.div>
-            )}
-
-            {/* Thinking expression - eyebrows */}
-            {emotionalState === "thinking" && (
-              <>
-                <motion.div
-                  className="absolute top-[28%] left-[35%] w-10 h-1 bg-primary/70 rounded-full"
-                  animate={{ rotate: -15 }}
-                />
-                <motion.div
-                  className="absolute top-[28%] right-[35%] w-10 h-1 bg-primary/70 rounded-full"
-                  animate={{ rotate: 15 }}
-                />
-              </>
-            )}
-
-            {/* Confused expression - tilted eyebrows */}
-            {emotionalState === "confused" && (
-              <>
-                <motion.div
-                  className="absolute top-[30%] left-[35%] w-10 h-1 bg-primary/70 rounded-full"
-                  animate={{ rotate: 15 }}
-                />
-                <motion.div
-                  className="absolute top-[28%] right-[35%] w-10 h-1 bg-primary/70 rounded-full"
-                  animate={{ rotate: -10 }}
-                />
-                <motion.div
-                  className="absolute bottom-[32%] left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-primary/50"
-                  animate={{ y: [0, -3, 0] }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                />
-              </>
-            )}
-
-            {/* Surprised expression - wide eyes and open mouth */}
-            {emotionalState === "surprised" && (
-              <>
-                <motion.div
-                  className="absolute top-[25%] left-[35%] w-12 h-1 bg-primary/70 rounded-full"
-                  animate={{ scaleY: 3 }}
-                />
-                <motion.div
-                  className="absolute top-[25%] right-[35%] w-12 h-1 bg-primary/70 rounded-full"
-                  animate={{ scaleY: 3 }}
-                />
-                <motion.div
-                  className="absolute bottom-[32%] left-1/2 -translate-x-1/2 w-6 h-8 rounded-full border-2 border-primary/70"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                />
-              </>
-            )}
-          </>
-        )}
+        >
+          <CustomRobotFace
+            eyePosition={finalEyePosition}
+            isBlinking={isBlinking}
+            isSpeaking={isSpeaking}
+            audioLevel={audioLevel}
+            emotionalState={emotionalState}
+            robotState={robotState}
+          />
+        </motion.div>
 
         {/* State overlay effects */}
         {robotState === "thinking" && (
           <motion.div
-            className="absolute inset-0 bg-gradient-to-br from-yellow-500/20 to-transparent"
+            className="absolute inset-0 bg-gradient-to-br from-yellow-500/20 to-transparent rounded-full"
             animate={{
               opacity: [0.3, 0.5, 0.3],
             }}
@@ -441,7 +266,7 @@ const RobotAvatar = ({
 
         {robotState === "processing" && (
           <motion.div
-            className="absolute inset-0 bg-gradient-to-tr from-yellow-500/30 via-transparent to-yellow-500/30"
+            className="absolute inset-0 bg-gradient-to-tr from-yellow-500/30 via-transparent to-yellow-500/30 rounded-full"
             animate={{
               rotate: [0, 360],
             }}
@@ -455,7 +280,7 @@ const RobotAvatar = ({
 
         {robotState === "error" && (
           <motion.div
-            className="absolute inset-0 bg-gradient-to-br from-red-500/30 to-transparent"
+            className="absolute inset-0 bg-gradient-to-br from-red-500/30 to-transparent rounded-full"
             animate={{
               opacity: [0.5, 0.8, 0.5],
             }}
@@ -468,7 +293,7 @@ const RobotAvatar = ({
 
         {isSpeaking && (
           <motion.div
-            className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent"
+            className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-full"
             animate={{
               opacity: [0.3, 0.6, 0.3],
             }}
