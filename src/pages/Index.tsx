@@ -34,12 +34,12 @@ const Index = () => {
       
       toast({
         title: "Connected",
-        description: "You're now connected to the AI assistant",
+        description: "You're now connected to Voxa",
       });
     } catch (error) {
       toast({
         title: "Connection failed",
-        description: "Failed to connect to AI assistant. Please try again.",
+        description: "Failed to connect to Voxa. Please try again.",
         variant: "destructive",
       });
     }
@@ -102,15 +102,24 @@ const Index = () => {
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5 }}
             >
-              AI ASSISTANT
+              VOXA
             </motion.h1>
+            <motion.p
+              className="text-xs md:text-sm text-muted-foreground font-medium tracking-wide"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              Your AI Assistant
+            </motion.p>
           </div>
         </header>
 
         {/* Main area */}
-        <main className="flex-1 flex flex-col items-center justify-center px-4 py-4 md:py-8 gap-6 md:gap-8">
-          {/* Robot avatar */}
+        <main className="flex-1 flex flex-col items-center justify-center px-4 py-4 md:py-8 gap-6 md:gap-8 w-full">
+          {/* Robot avatar with particle effects */}
           <motion.div
+            className="relative w-full max-w-lg aspect-square"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -141,7 +150,7 @@ const Index = () => {
             <p className="text-sm md:text-base text-muted-foreground max-w-md px-4">
               {isConnected
                 ? "Ask me anything, schedule meetings, or send emails"
-                : "Connect to start a real-time conversation with your AI assistant"}
+                : "Connect to start a real-time conversation with Voxa"}
             </p>
           </motion.div>
 
@@ -166,12 +175,10 @@ const Index = () => {
           {isConnected && <ConversationHistory messages={messages} />}
         </main>
 
-        {/* Chat input footer */}
-        {isConnected && (
-          <footer className="w-full px-4 py-4 md:py-6">
-            <ChatInput onSendMessage={handleSendMessage} disabled={!isConnected} />
-          </footer>
-        )}
+        {/* Chat input footer - Always visible when connected */}
+        <footer className="w-full px-4 py-4 md:py-6">
+          <ChatInput onSendMessage={handleSendMessage} disabled={!isConnected} />
+        </footer>
       </div>
     </div>
   );

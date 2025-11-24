@@ -28,7 +28,7 @@ const CallControls = ({ isConnected, onConnect, onDisconnect }: CallControlsProp
               whileTap={{ scale: 0.95 }}
             >
               <Phone className="w-6 h-6" />
-              <span>Connect to AI</span>
+              <span>Connect to Voxa</span>
             </motion.div>
             
             {/* Animated border */}

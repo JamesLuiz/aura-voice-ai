@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import robotAvatar from "@/assets/robot-avatar.png";
+import ParticleField from "@/components/ParticleField";
 
 export type RobotState = "idle" | "listening" | "thinking" | "speaking" | "processing" | "error";
 
@@ -38,7 +39,15 @@ const RobotAvatar = ({ isConnected, isSpeaking, robotState, audioLevel = 0 }: Ro
   const lipSyncScale = isSpeaking ? 1 + audioLevel * 0.1 : 1;
 
   return (
-    <div className="relative flex items-center justify-center">
+    <div className="relative flex items-center justify-center w-full h-full">
+      {/* 3D Particle Field */}
+      <ParticleField 
+        isSpeaking={isSpeaking}
+        isProcessing={robotState === "processing"}
+        robotState={robotState}
+        isConnected={isConnected}
+      />
+      
       {/* Outer glow rings */}
       {isConnected && (
         <>
@@ -97,7 +106,7 @@ const RobotAvatar = ({ isConnected, isSpeaking, robotState, audioLevel = 0 }: Ro
         {/* Robot image */}
         <motion.img
           src={robotAvatar}
-          alt="AI Assistant Robot"
+          alt="Voxa AI Assistant Robot"
           className="w-full h-full object-cover"
           animate={{
             y: isConnected ? [0, -5, 0] : 0,
