@@ -1,35 +1,52 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
 import RobotAvatar from "@/components/RobotAvatar";
 import CallControls from "@/components/CallControls";
 import ChatInput from "@/components/ChatInput";
-import ConnectionStatus from "@/components/ConnectionStatus";
+import VoiceControls from "@/components/VoiceControls";
+import ConversationHistory from "@/components/ConversationHistory";
+import { useLiveKit } from "@/hooks/useLiveKit";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const { toast } = useToast();
+  const {
+    connect,
+    disconnect,
+    toggleMute,
+    changeVolume,
+    sendMessage,
+    isConnected,
+    isSpeaking,
+    isMuted,
+    volume,
+    messages,
+    robotState,
+    audioLevel,
+  } = useLiveKit();
 
-  const handleConnect = () => {
-    // TODO: Integrate with LiveKit here
-    setIsConnected(true);
-    toast({
-      title: "Connected",
-      description: "You're now connected to the AI assistant",
-    });
-    
-    // Simulate speaking animation
-    setTimeout(() => {
-      setIsSpeaking(true);
-      setTimeout(() => setIsSpeaking(false), 3000);
-    }, 1000);
+  const handleConnect = async () => {
+    try {
+      // TODO: Replace with your actual LiveKit URL and token
+      const url = "wss://your-livekit-server.com";
+      const token = "your-token-here";
+      
+      await connect(url, token);
+      
+      toast({
+        title: "Connected",
+        description: "You're now connected to the AI assistant",
+      });
+    } catch (error) {
+      toast({
+        title: "Connection failed",
+        description: "Failed to connect to AI assistant. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDisconnect = () => {
-    // TODO: Disconnect from LiveKit here
-    setIsConnected(false);
-    setIsSpeaking(false);
+    disconnect();
     toast({
       title: "Disconnected",
       description: "Call ended successfully",
@@ -38,18 +55,7 @@ const Index = () => {
   };
 
   const handleSendMessage = (message: string) => {
-    // TODO: Send message through LiveKit
-    console.log("Sending message:", message);
-    toast({
-      title: "Message sent",
-      description: message,
-    });
-    
-    // Simulate AI response
-    setTimeout(() => {
-      setIsSpeaking(true);
-      setTimeout(() => setIsSpeaking(false), 2000);
-    }, 500);
+    sendMessage(message);
   };
 
   return (
@@ -89,28 +95,32 @@ const Index = () => {
       <div className="relative z-10 flex flex-col min-h-screen">
         {/* Header */}
         <header className="w-full px-4 py-6 md:py-8">
-          <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="max-w-7xl mx-auto text-center">
             <motion.h1
-              className="text-2xl md:text-3xl font-display font-bold bg-gradient-primary bg-clip-text text-transparent"
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
+              className="text-2xl md:text-4xl font-display font-bold bg-gradient-primary bg-clip-text text-transparent"
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5 }}
             >
               AI ASSISTANT
             </motion.h1>
-            <ConnectionStatus isConnected={isConnected} isSpeaking={isSpeaking} />
           </div>
         </header>
 
         {/* Main area */}
-        <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 gap-8 md:gap-12">
+        <main className="flex-1 flex flex-col items-center justify-center px-4 py-4 md:py-8 gap-6 md:gap-8">
           {/* Robot avatar */}
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <RobotAvatar isConnected={isConnected} isSpeaking={isSpeaking} />
+            <RobotAvatar 
+              isConnected={isConnected} 
+              isSpeaking={isSpeaking}
+              robotState={robotState}
+              audioLevel={audioLevel}
+            />
           </motion.div>
 
           {/* Status text */}
@@ -120,14 +130,15 @@ const Index = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            <h2 className="text-xl md:text-2xl font-semibold text-foreground">
-              {isConnected
-                ? isSpeaking
-                  ? "I'm speaking..."
-                  : "I'm listening"
-                : "Ready to connect"}
+            <h2 className="text-lg md:text-2xl font-semibold text-foreground">
+              {robotState === "idle" && "Ready to connect"}
+              {robotState === "listening" && "I'm listening..."}
+              {robotState === "thinking" && "Thinking..."}
+              {robotState === "speaking" && "Speaking..."}
+              {robotState === "processing" && "Processing..."}
+              {robotState === "error" && "Error occurred"}
             </h2>
-            <p className="text-muted-foreground max-w-md">
+            <p className="text-sm md:text-base text-muted-foreground max-w-md px-4">
               {isConnected
                 ? "Ask me anything, schedule meetings, or send emails"
                 : "Connect to start a real-time conversation with your AI assistant"}
@@ -140,12 +151,27 @@ const Index = () => {
             onConnect={handleConnect}
             onDisconnect={handleDisconnect}
           />
+
+          {/* Voice controls */}
+          {isConnected && (
+            <VoiceControls
+              isMuted={isMuted}
+              volume={volume}
+              onToggleMute={toggleMute}
+              onVolumeChange={changeVolume}
+            />
+          )}
+
+          {/* Conversation history */}
+          {isConnected && <ConversationHistory messages={messages} />}
         </main>
 
         {/* Chat input footer */}
-        <footer className="w-full px-4 py-6 md:py-8">
-          <ChatInput onSendMessage={handleSendMessage} disabled={!isConnected} />
-        </footer>
+        {isConnected && (
+          <footer className="w-full px-4 py-4 md:py-6">
+            <ChatInput onSendMessage={handleSendMessage} disabled={!isConnected} />
+          </footer>
+        )}
       </div>
     </div>
   );
