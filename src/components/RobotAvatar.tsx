@@ -14,6 +14,7 @@ interface RobotAvatarProps {
   audioLevel?: number;
   frequency?: number;
   emotionalState?: EmotionalState;
+  onTouch?: () => void;
 }
 
 const RobotAvatar = ({ 
@@ -22,12 +23,15 @@ const RobotAvatar = ({
   robotState, 
   audioLevel = 0, 
   frequency = 0,
-  emotionalState = "neutral"
+  emotionalState = "neutral",
+  onTouch
 }: RobotAvatarProps) => {
   const [isBlinking, setIsBlinking] = useState(false);
   const [eyePosition, setEyePosition] = useState({ x: 0, y: 0 });
   const [idleEyePosition, setIdleEyePosition] = useState({ x: 0, y: 0 });
   const [isTrackingCursor, setIsTrackingCursor] = useState(false);
+  const [isTouched, setIsTouched] = useState(false);
+  const [touchReaction, setTouchReaction] = useState({ rotateZ: 0, rotateY: 0, rotateX: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const lastMouseMoveTime = useRef(Date.now());
 
@@ -96,6 +100,38 @@ const RobotAvatar = ({
     return () => clearInterval(idleInterval);
   }, []);
 
+  // Touch interaction handler
+  const handleTouch = () => {
+    if (!isConnected) return;
+    
+    setIsTouched(true);
+    onTouch?.();
+    
+    // Random playful head movement
+    const randomRotations = [
+      { rotateZ: 15, rotateY: 10, rotateX: -5 },
+      { rotateZ: -15, rotateY: -10, rotateX: 5 },
+      { rotateZ: 10, rotateY: -8, rotateX: 8 },
+      { rotateZ: -12, rotateY: 12, rotateX: -8 },
+    ];
+    
+    const randomReaction = randomRotations[Math.floor(Math.random() * randomRotations.length)];
+    setTouchReaction(randomReaction);
+    
+    // Look at the point that was touched
+    const randomEyeMovement = {
+      x: (Math.random() - 0.5) * 20,
+      y: (Math.random() - 0.5) * 15,
+    };
+    setEyePosition(randomEyeMovement);
+    
+    // Reset after animation
+    setTimeout(() => {
+      setIsTouched(false);
+      setTouchReaction({ rotateZ: 0, rotateY: 0, rotateX: 0 });
+    }, 800);
+  };
+
   const finalEyePosition = isTrackingCursor ? eyePosition : idleEyePosition;
   const getStateColor = () => {
     switch (robotState) {
@@ -123,8 +159,13 @@ const RobotAvatar = ({
   // Lip sync animation based on audio level
   const lipSyncScale = isSpeaking ? 1 + audioLevel * 0.1 : 1;
 
-  // Enhanced head movements based on speech patterns and emotional state
+  // Enhanced head movements based on speech patterns, emotional state, and touch
   const getHeadRotation = () => {
+    // Touch reaction takes priority
+    if (isTouched) {
+      return touchReaction;
+    }
+    
     if (isSpeaking) {
       // More pronounced dynamic head movement during speech
       const intensityMultiplier = audioLevel > 0.3 ? 1.5 : 1;
@@ -170,9 +211,12 @@ const RobotAvatar = ({
         isConnected={isConnected}
       />
 
-      {/* Main robot container with head movements */}
+      {/* Main robot container with head movements and touch interaction */}
       <motion.div
-        className="relative w-48 h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 rounded-full overflow-hidden flex items-center justify-center"
+        className="relative w-48 h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 rounded-full overflow-hidden flex items-center justify-center cursor-pointer"
+        onClick={handleTouch}
+        whileHover={isConnected ? { scale: 1.02 } : {}}
+        whileTap={isConnected ? { scale: 0.98 } : {}}
         style={{
           background: 'radial-gradient(circle at center, hsl(222 40% 12%), hsl(222 47% 8%))',
           boxShadow: getStateBorder(),
