@@ -15,6 +15,7 @@ interface Message {
 }
 
 export type RobotState = "idle" | "listening" | "thinking" | "speaking" | "processing" | "error";
+export type EmotionalState = "neutral" | "happy" | "thinking" | "confused" | "surprised";
 
 export const useLiveKit = () => {
   const [room] = useState(() => new Room());
@@ -27,6 +28,7 @@ export const useLiveKit = () => {
   const [robotState, setRobotState] = useState<RobotState>("idle");
   const [audioLevel, setAudioLevel] = useState(0);
   const [frequency, setFrequency] = useState(0);
+  const [emotionalState, setEmotionalState] = useState<EmotionalState>("neutral");
 
   useEffect(() => {
     room.on(RoomEvent.Connected, () => {
@@ -66,8 +68,17 @@ export const useLiveKit = () => {
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, newMessage]);
+        
+        // Simulate emotional state based on content (in real app, this would come from AI)
+        if (data.text.includes("?")) {
+          setEmotionalState("confused");
+        } else if (data.text.includes("!")) {
+          setEmotionalState("surprised");
+        }
       } else if (data.type === "state") {
         setRobotState(data.state);
+      } else if (data.type === "emotion") {
+        setEmotionalState(data.emotion);
       }
     });
 
@@ -87,6 +98,7 @@ export const useLiveKit = () => {
           // High energy speech (vowels)
           setAudioLevel(Math.random() * 0.3 + 0.7);
           setFrequency(Math.random() * 2 + 1);
+          setEmotionalState(random > 0.85 ? "happy" : "neutral");
         } else if (random > 0.3) {
           // Medium energy speech
           setAudioLevel(Math.random() * 0.3 + 0.4);
@@ -101,8 +113,13 @@ export const useLiveKit = () => {
     } else {
       setAudioLevel(0);
       setFrequency(0);
+      if (robotState === "thinking") {
+        setEmotionalState("thinking");
+      } else if (robotState === "idle") {
+        setEmotionalState("neutral");
+      }
     }
-  }, [isSpeaking]);
+  }, [isSpeaking, robotState]);
 
   const connect = useCallback(async (url: string, token: string) => {
     try {
@@ -176,5 +193,6 @@ export const useLiveKit = () => {
     robotState,
     audioLevel,
     frequency,
+    emotionalState,
   };
 };

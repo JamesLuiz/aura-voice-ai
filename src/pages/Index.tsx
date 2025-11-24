@@ -23,6 +23,7 @@ const Index = () => {
     robotState,
     audioLevel,
     frequency,
+    emotionalState,
   } = useLiveKit();
 
   const handleConnect = async () => {
@@ -131,6 +132,7 @@ const Index = () => {
               robotState={robotState}
               audioLevel={audioLevel}
               frequency={frequency}
+              emotionalState={emotionalState}
             />
           </motion.div>
 
