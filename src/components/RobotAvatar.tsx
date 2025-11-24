@@ -31,14 +31,16 @@ const RobotAvatar = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const lastMouseMoveTime = useRef(Date.now());
 
-  // Natural blinking effect
+  // Natural blinking effect with variable duration
   useEffect(() => {
     if (!isConnected) return;
 
     const blinkInterval = setInterval(() => {
       setIsBlinking(true);
-      setTimeout(() => setIsBlinking(false), 150);
-    }, Math.random() * 3000 + 2000); // Blink every 2-5 seconds
+      // Variable blink duration for more natural feel
+      const blinkDuration = Math.random() * 50 + 100; // 100-150ms
+      setTimeout(() => setIsBlinking(false), blinkDuration);
+    }, Math.random() * 2000 + 2500); // Blink every 2.5-4.5 seconds
 
     return () => clearInterval(blinkInterval);
   }, [isConnected]);
@@ -121,26 +123,28 @@ const RobotAvatar = ({
   // Lip sync animation based on audio level
   const lipSyncScale = isSpeaking ? 1 + audioLevel * 0.1 : 1;
 
-  // Head tilt based on speech patterns and emotional state
+  // Enhanced head movements based on speech patterns and emotional state
   const getHeadRotation = () => {
     if (isSpeaking) {
-      // Dynamic head movement during speech
+      // More pronounced dynamic head movement during speech
+      const intensityMultiplier = audioLevel > 0.3 ? 1.5 : 1;
       return {
-        rotateZ: Math.sin(frequency * 3) * audioLevel * 3,
-        rotateY: Math.cos(frequency * 2) * audioLevel * 2,
-        rotateX: Math.sin(frequency) * audioLevel * 1.5,
+        rotateZ: Math.sin(frequency * 4) * audioLevel * 5 * intensityMultiplier,
+        rotateY: Math.cos(frequency * 3) * audioLevel * 4 * intensityMultiplier,
+        rotateX: Math.sin(frequency * 2) * audioLevel * 3 * intensityMultiplier,
       };
     }
     
+    // More pronounced emotional expressions
     switch (emotionalState) {
       case "thinking":
-        return { rotateZ: -5, rotateY: 3, rotateX: -2 };
+        return { rotateZ: -8, rotateY: 5, rotateX: -3 };
       case "confused":
-        return { rotateZ: 8, rotateY: -5, rotateX: 2 };
+        return { rotateZ: 12, rotateY: -8, rotateX: 3 };
       case "surprised":
-        return { rotateZ: 0, rotateY: 0, rotateX: -5 };
+        return { rotateZ: 0, rotateY: 0, rotateX: -8 };
       case "happy":
-        return { rotateZ: 3, rotateY: 2, rotateX: 1 };
+        return { rotateZ: 5, rotateY: 3, rotateX: 2 };
       default:
         return { rotateZ: 0, rotateY: 0, rotateX: 0 };
     }
@@ -165,39 +169,6 @@ const RobotAvatar = ({
         robotState={robotState}
         isConnected={isConnected}
       />
-      
-      {/* Outer glow rings */}
-      {isConnected && (
-        <>
-          <motion.div
-            className="absolute w-64 h-64 md:w-80 md:h-80 lg:w-96 lg:h-96 rounded-full border-2"
-            style={{ borderColor: `${getStateColor().replace("50%)", "20%)")}` }}
-            animate={{
-              scale: isSpeaking ? [1, 1.15, 1] : [1, 1.08, 1],
-              opacity: [0.3, 0.6, 0.3],
-            }}
-            transition={{
-              duration: isSpeaking ? 0.8 : 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
-          <motion.div
-            className="absolute w-72 h-72 md:w-88 md:h-88 lg:w-[26rem] lg:h-[26rem] rounded-full border"
-            style={{ borderColor: `${getStateColor().replace("50%)", "10%)")}` }}
-            animate={{
-              scale: isSpeaking ? [1, 1.2, 1] : [1, 1.12, 1],
-              opacity: [0.2, 0.4, 0.2],
-            }}
-            transition={{
-              duration: isSpeaking ? 1 : 2.5,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 0.3,
-            }}
-          />
-        </>
-      )}
 
       {/* Main robot container with head movements */}
       <motion.div

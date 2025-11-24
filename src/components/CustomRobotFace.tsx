@@ -18,7 +18,9 @@ const CustomRobotFace = ({
   emotionalState,
   robotState,
 }: CustomRobotFaceProps) => {
-  const lipSyncScale = isSpeaking ? 1 + audioLevel * 0.3 : 1;
+  // Enhanced lip sync with more dynamic scaling
+  const lipSyncScale = isSpeaking ? 1 + audioLevel * 0.5 : 1;
+  const jawOpenness = isSpeaking ? audioLevel * 0.7 : 0;
 
   const getStateColor = () => {
     switch (robotState) {
@@ -120,23 +122,31 @@ const CustomRobotFace = ({
       <rect x="55" y="90" width="30" height="25" rx="5" fill="hsl(220 20% 10%)" />
       <rect x="115" y="90" width="30" height="25" rx="5" fill="hsl(220 20% 10%)" />
 
-      {/* Eyes - Pupils */}
+      {/* Eyes - Pupils with enhanced expressions */}
       {!isBlinking && (
         <>
           <motion.g
             animate={{
               x: eyePosition.x,
               y: eyePosition.y,
-              scale: emotionalState === "surprised" ? 1.4 : 1,
+              scale: emotionalState === "surprised" ? 1.5 : emotionalState === "happy" ? 1.1 : 1,
             }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
           >
             <circle
               cx="70"
               cy="102.5"
-              r={emotionalState === "surprised" ? "8" : "6"}
+              r={emotionalState === "surprised" ? "9" : emotionalState === "thinking" ? "5" : "6"}
               fill={getStateColor()}
-              style={{ filter: `drop-shadow(0 0 8px ${getStateColor()})` }}
+              style={{ filter: `drop-shadow(0 0 10px ${getStateColor()})` }}
+            />
+            {/* Eye shine for more life */}
+            <circle
+              cx="68"
+              cy="100"
+              r="2"
+              fill="white"
+              opacity="0.6"
             />
           </motion.g>
           
@@ -144,16 +154,24 @@ const CustomRobotFace = ({
             animate={{
               x: eyePosition.x,
               y: eyePosition.y,
-              scale: emotionalState === "surprised" ? 1.4 : 1,
+              scale: emotionalState === "surprised" ? 1.5 : emotionalState === "happy" ? 1.1 : 1,
             }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
           >
             <circle
               cx="130"
               cy="102.5"
-              r={emotionalState === "surprised" ? "8" : "6"}
+              r={emotionalState === "surprised" ? "9" : emotionalState === "thinking" ? "5" : "6"}
               fill={getStateColor()}
-              style={{ filter: `drop-shadow(0 0 8px ${getStateColor()})` }}
+              style={{ filter: `drop-shadow(0 0 10px ${getStateColor()})` }}
+            />
+            {/* Eye shine for more life */}
+            <circle
+              cx="128"
+              cy="100"
+              r="2"
+              fill="white"
+              opacity="0.6"
             />
           </motion.g>
         </>
@@ -187,28 +205,38 @@ const CustomRobotFace = ({
         </>
       )}
 
-      {/* Eyebrows - Expressions */}
+      {/* Eyebrows - Enhanced Expressions */}
       {emotionalState === "thinking" && (
         <>
           <motion.line
-            x1="55"
+            x1="52"
             y1="85"
             x2="85"
-            y2="82"
+            y2="80"
             stroke={getStateColor()}
-            strokeWidth="3"
+            strokeWidth="3.5"
             strokeLinecap="round"
-            opacity="0.8"
+            opacity="0.9"
+            animate={{ 
+              y: [-0.5, 0.5, -0.5],
+              x1: [52, 50, 52]
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
           />
           <motion.line
-            x1="145"
-            y1="82"
+            x1="148"
+            y1="80"
             x2="115"
             y2="85"
             stroke={getStateColor()}
-            strokeWidth="3"
+            strokeWidth="3.5"
             strokeLinecap="round"
-            opacity="0.8"
+            opacity="0.9"
+            animate={{ 
+              y: [-0.5, 0.5, -0.5],
+              x1: [148, 150, 148]
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
           />
         </>
       )}
@@ -216,24 +244,34 @@ const CustomRobotFace = ({
       {emotionalState === "confused" && (
         <>
           <motion.line
-            x1="55"
-            y1="82"
+            x1="52"
+            y1="80"
             x2="85"
-            y2="87"
+            y2="88"
             stroke={getStateColor()}
-            strokeWidth="3"
+            strokeWidth="3.5"
             strokeLinecap="round"
-            opacity="0.8"
+            opacity="0.9"
+            animate={{ 
+              y1: [80, 82, 80],
+              y2: [88, 90, 88]
+            }}
+            transition={{ duration: 1.5, repeat: Infinity }}
           />
           <motion.line
-            x1="145"
-            y1="87"
+            x1="148"
+            y1="88"
             x2="115"
-            y2="83"
+            y2="81"
             stroke={getStateColor()}
-            strokeWidth="3"
+            strokeWidth="3.5"
             strokeLinecap="round"
-            opacity="0.8"
+            opacity="0.9"
+            animate={{ 
+              y1: [88, 90, 88],
+              y2: [81, 83, 81]
+            }}
+            transition={{ duration: 1.5, repeat: Infinity }}
           />
         </>
       )}
@@ -241,106 +279,160 @@ const CustomRobotFace = ({
       {emotionalState === "surprised" && (
         <>
           <motion.line
-            x1="55"
-            y1="80"
+            x1="52"
+            y1="78"
             x2="85"
-            y2="80"
+            y2="78"
             stroke={getStateColor()}
-            strokeWidth="3"
+            strokeWidth="3.5"
             strokeLinecap="round"
-            opacity="0.8"
-            animate={{ y: [-2, 0, -2] }}
-            transition={{ duration: 0.3, repeat: Infinity }}
+            opacity="0.9"
+            animate={{ y: [-3, -1, -3] }}
+            transition={{ duration: 0.4, repeat: Infinity }}
           />
           <motion.line
             x1="115"
-            y1="80"
-            x2="145"
-            y2="80"
+            y1="78"
+            x2="148"
+            y2="78"
             stroke={getStateColor()}
-            strokeWidth="3"
+            strokeWidth="3.5"
             strokeLinecap="round"
-            opacity="0.8"
-            animate={{ y: [-2, 0, -2] }}
-            transition={{ duration: 0.3, repeat: Infinity }}
+            opacity="0.9"
+            animate={{ y: [-3, -1, -3] }}
+            transition={{ duration: 0.4, repeat: Infinity }}
+          />
+        </>
+      )}
+
+      {emotionalState === "happy" && (
+        <>
+          <motion.path
+            d="M 52 83 Q 68 78, 85 83"
+            stroke={getStateColor()}
+            strokeWidth="3.5"
+            fill="none"
+            strokeLinecap="round"
+            opacity="0.9"
+          />
+          <motion.path
+            d="M 115 83 Q 132 78, 148 83"
+            stroke={getStateColor()}
+            strokeWidth="3.5"
+            fill="none"
+            strokeLinecap="round"
+            opacity="0.9"
           />
         </>
       )}
 
       {/* Mouth Area */}
       <g>
-        {/* Mouth - Changes based on emotion and speech */}
+        {/* Mouth - Enhanced emotion-based expressions */}
         {emotionalState === "happy" && !isSpeaking && (
-          <motion.path
-            d="M 70 140 Q 100 155, 130 140"
-            stroke={getStateColor()}
-            strokeWidth="4"
-            fill="none"
-            strokeLinecap="round"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          />
+          <>
+            <motion.path
+              d="M 68 138 Q 100 158, 132 138"
+              stroke={getStateColor()}
+              strokeWidth="4.5"
+              fill="none"
+              strokeLinecap="round"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            />
+            {/* Smile dimples */}
+            <circle cx="68" cy="138" r="2" fill={getStateColor()} opacity="0.4" />
+            <circle cx="132" cy="138" r="2" fill={getStateColor()} opacity="0.4" />
+          </>
         )}
 
         {emotionalState === "confused" && !isSpeaking && (
           <motion.path
-            d="M 70 145 Q 85 140, 100 145 Q 115 150, 130 145"
+            d="M 68 145 Q 82 138, 100 146 Q 118 152, 132 144"
             stroke={getStateColor()}
-            strokeWidth="3"
+            strokeWidth="3.5"
             fill="none"
             strokeLinecap="round"
+            animate={{
+              d: [
+                "M 68 145 Q 82 138, 100 146 Q 118 152, 132 144",
+                "M 68 145 Q 82 140, 100 145 Q 118 150, 132 144",
+                "M 68 145 Q 82 138, 100 146 Q 118 152, 132 144"
+              ]
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
           />
         )}
 
         {emotionalState === "surprised" && !isSpeaking && (
           <motion.ellipse
             cx="100"
-            cy="145"
-            rx="12"
-            ry="16"
+            cy="148"
+            rx="14"
+            ry="18"
             stroke={getStateColor()}
-            strokeWidth="3"
+            strokeWidth="3.5"
             fill="hsl(220 20% 8%)"
             initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
+            animate={{ 
+              scale: [1, 1.05, 1],
+              ry: [18, 20, 18]
+            }}
+            transition={{ 
+              scale: { duration: 0.3 },
+              ry: { duration: 0.5, repeat: Infinity }
+            }}
           />
         )}
 
-        {/* Speaking Mouth - Lip Sync */}
+        {/* Speaking Mouth - Enhanced Lip Sync */}
         {isSpeaking && (
           <>
+            {/* Outer mouth with jaw movement */}
             <motion.ellipse
               cx="100"
-              cy="145"
-              rx="15"
-              ry="10"
+              cy={145 + jawOpenness * 3}
+              rx="18"
+              ry="12"
               fill="hsl(220 20% 8%)"
               stroke={getStateColor()}
               strokeWidth="2"
               animate={{
-                ry: 10 * lipSyncScale,
-                rx: 15 + audioLevel * 5,
+                ry: 12 * lipSyncScale,
+                rx: 18 + audioLevel * 8,
+                cy: 145 + jawOpenness * 5,
               }}
               transition={{
-                duration: 0.08,
+                duration: 0.05,
                 ease: "easeOut",
               }}
             />
+            {/* Inner glow tongue effect */}
             <motion.ellipse
               cx="100"
-              cy="145"
-              rx="10"
-              ry="6"
+              cy={145 + jawOpenness * 2}
+              rx="12"
+              ry="7"
               fill={getStateColor()}
-              opacity="0.3"
+              opacity="0.4"
               animate={{
-                ry: 6 * lipSyncScale * 0.8,
-                opacity: [0.2 + audioLevel * 0.3, 0.5 + audioLevel * 0.4, 0.2 + audioLevel * 0.3],
+                ry: 7 * lipSyncScale * 0.9,
+                opacity: [0.3 + audioLevel * 0.4, 0.6 + audioLevel * 0.5, 0.3 + audioLevel * 0.4],
               }}
               transition={{
-                ry: { duration: 0.08 },
-                opacity: { duration: 0.12, repeat: Infinity },
+                ry: { duration: 0.05 },
+                opacity: { duration: 0.1, repeat: Infinity },
               }}
+            />
+            {/* Teeth line for more detail */}
+            <motion.line
+              x1="90"
+              y1={143 + jawOpenness * 2}
+              x2="110"
+              y2={143 + jawOpenness * 2}
+              stroke="hsl(220 20% 25%)"
+              strokeWidth="1.5"
+              opacity="0.5"
             />
           </>
         )}
