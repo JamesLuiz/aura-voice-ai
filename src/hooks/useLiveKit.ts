@@ -29,6 +29,8 @@ export const useLiveKit = () => {
   const [audioLevel, setAudioLevel] = useState(0);
   const [frequency, setFrequency] = useState(0);
   const [emotionalState, setEmotionalState] = useState<EmotionalState>("neutral");
+  const [audioAnalyzer, setAudioAnalyzer] = useState<AnalyserNode | null>(null);
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
 
   useEffect(() => {
     room.on(RoomEvent.Connected, () => {
@@ -47,6 +49,17 @@ export const useLiveKit = () => {
         const audioElement = track.attach();
         audioElement.volume = volume;
         document.body.appendChild(audioElement);
+
+        // Set up audio analysis for lip sync
+        const ctx = new AudioContext();
+        const analyzer = ctx.createAnalyser();
+        analyzer.fftSize = 256;
+        const source = ctx.createMediaElementSource(audioElement);
+        source.connect(analyzer);
+        analyzer.connect(ctx.destination);
+        
+        setAudioContext(ctx);
+        setAudioAnalyzer(analyzer);
       }
     });
 
@@ -97,32 +110,57 @@ export const useLiveKit = () => {
     return () => {
       room.removeAllListeners();
       room.disconnect();
+      if (audioContext) {
+        audioContext.close();
+      }
     };
   }, [room, volume]);
 
-  // Simulate audio level and frequency for lip sync and visualization
+  // Real-time audio analysis for lip sync
   useEffect(() => {
-    if (isSpeaking) {
-      const interval = setInterval(() => {
-        // Simulate more natural speech patterns
-        const random = Math.random();
-        if (random > 0.7) {
-          // High energy speech (vowels)
-          setAudioLevel(Math.random() * 0.3 + 0.7);
-          setFrequency(Math.random() * 2 + 1);
-          setEmotionalState(random > 0.85 ? "happy" : "neutral");
-        } else if (random > 0.3) {
-          // Medium energy speech
-          setAudioLevel(Math.random() * 0.3 + 0.4);
-          setFrequency(Math.random() * 1.5 + 0.5);
-        } else {
-          // Low energy speech (consonants, pauses)
-          setAudioLevel(Math.random() * 0.2);
-          setFrequency(Math.random() * 0.5);
+    if (isSpeaking && audioAnalyzer) {
+      const bufferLength = audioAnalyzer.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      
+      const analyzeAudio = () => {
+        if (!isSpeaking) return;
+        
+        audioAnalyzer.getByteFrequencyData(dataArray);
+        
+        // Calculate average amplitude for mouth opening
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          sum += dataArray[i];
         }
-      }, 80);
-      return () => clearInterval(interval);
-    } else {
+        const average = sum / bufferLength;
+        const normalizedLevel = Math.min(average / 128, 1); // Normalize to 0-1
+        
+        // Calculate dominant frequency for visualization
+        let maxValue = 0;
+        let maxIndex = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          if (dataArray[i] > maxValue) {
+            maxValue = dataArray[i];
+            maxIndex = i;
+          }
+        }
+        const normalizedFreq = maxIndex / bufferLength;
+        
+        setAudioLevel(normalizedLevel);
+        setFrequency(normalizedFreq * 3); // Scale for visualization
+        
+        // Update emotional state based on audio characteristics
+        if (normalizedLevel > 0.7) {
+          setEmotionalState("happy");
+        } else if (normalizedLevel > 0.4) {
+          setEmotionalState("neutral");
+        }
+        
+        requestAnimationFrame(analyzeAudio);
+      };
+      
+      analyzeAudio();
+    } else if (!isSpeaking) {
       setAudioLevel(0);
       setFrequency(0);
       if (robotState === "thinking") {
@@ -131,7 +169,7 @@ export const useLiveKit = () => {
         setEmotionalState("neutral");
       }
     }
-  }, [isSpeaking, robotState]);
+  }, [isSpeaking, audioAnalyzer, robotState]);
 
   const connect = useCallback(async (url?: string, token?: string) => {
     try {

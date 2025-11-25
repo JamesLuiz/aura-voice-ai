@@ -19,8 +19,8 @@ const CustomRobotFace = ({
   robotState,
 }: CustomRobotFaceProps) => {
   // Enhanced lip sync with more dynamic scaling
-  const lipSyncScale = isSpeaking ? 1 + audioLevel * 0.5 : 1;
-  const jawOpenness = isSpeaking ? audioLevel * 0.7 : 0;
+  const lipSyncScale = isSpeaking ? 1 + audioLevel * 1.2 : 1;
+  const jawOpenness = isSpeaking ? audioLevel * 1.5 : 0;
 
   const getStateColor = () => {
     switch (robotState) {
@@ -391,49 +391,46 @@ const CustomRobotFace = ({
             {/* Outer mouth with jaw movement */}
             <motion.ellipse
               cx="100"
-              cy={145 + jawOpenness * 3}
-              rx="18"
-              ry="12"
+              cy={145 + jawOpenness * 8}
+              rx={16 + audioLevel * 12}
+              ry={8 + audioLevel * 15}
               fill="hsl(220 20% 8%)"
               stroke={getStateColor()}
               strokeWidth="2"
-              animate={{
-                ry: 12 * lipSyncScale,
-                rx: 18 + audioLevel * 8,
-                cy: 145 + jawOpenness * 5,
-              }}
               transition={{
-                duration: 0.05,
-                ease: "easeOut",
+                duration: 0.03,
+                ease: "linear",
               }}
             />
             {/* Inner glow tongue effect */}
             <motion.ellipse
               cx="100"
-              cy={145 + jawOpenness * 2}
-              rx="12"
-              ry="7"
+              cy={147 + jawOpenness * 6}
+              rx={12 + audioLevel * 8}
+              ry={5 + audioLevel * 10}
               fill={getStateColor()}
-              opacity="0.4"
-              animate={{
-                ry: 7 * lipSyncScale * 0.9,
-                opacity: [0.3 + audioLevel * 0.4, 0.6 + audioLevel * 0.5, 0.3 + audioLevel * 0.4],
-              }}
+              opacity={0.3 + audioLevel * 0.5}
               transition={{
-                ry: { duration: 0.05 },
-                opacity: { duration: 0.1, repeat: Infinity },
+                duration: 0.03,
+                ease: "linear",
               }}
             />
-            {/* Teeth line for more detail */}
-            <motion.line
-              x1="90"
-              y1={143 + jawOpenness * 2}
-              x2="110"
-              y2={143 + jawOpenness * 2}
-              stroke="hsl(220 20% 25%)"
-              strokeWidth="1.5"
-              opacity="0.5"
-            />
+            {/* Teeth line for realism */}
+            {audioLevel > 0.3 && (
+              <motion.line
+                x1={100 - (8 + audioLevel * 6)}
+                y1={145 + jawOpenness * 4}
+                x2={100 + (8 + audioLevel * 6)}
+                y2={145 + jawOpenness * 4}
+                stroke="hsl(220 20% 80%)"
+                strokeWidth="1.5"
+                opacity={audioLevel * 0.6}
+                transition={{
+                  duration: 0.03,
+                  ease: "linear",
+                }}
+              />
+            )}
           </>
         )}
 
