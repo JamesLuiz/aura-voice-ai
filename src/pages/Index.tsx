@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import CustomRobotFace from "@/components/CustomRobotFace";
+import RobotAvatar from "@/components/RobotAvatar";
 import CallControls from "@/components/CallControls";
 import ChatInput from "@/components/ChatInput";
 import { ConversationSidebar } from "@/components/ConversationSidebar";
@@ -132,14 +132,14 @@ const Index = () => {
 
             {/* Main area */}
             <main className="flex-1 flex flex-col items-center justify-center px-4 py-4 md:py-8 gap-6 md:gap-8 w-full">
-              {/* Custom Robot Avatar with all features */}
+              {/* Robot avatar with particle effects */}
               <motion.div
                 className="relative w-full max-w-lg aspect-square"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
               >
-                <CustomRobotFace 
+                <RobotAvatar 
                   isConnected={isConnected} 
                   isSpeaking={isSpeaking}
                   robotState={robotState}
