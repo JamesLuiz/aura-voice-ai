@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Mic, MicOff, Loader2, MessageSquare } from "lucide-react";
-import { RobotState } from "./RobotAvatar";
+import { RobotState } from "./CustomRobotFace";
 
 interface VoiceActivityIndicatorProps {
   robotState: RobotState;
