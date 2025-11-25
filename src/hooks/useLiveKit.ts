@@ -44,18 +44,24 @@ export const useLiveKit = () => {
       setRobotState("idle");
     });
 
-    room.on(RoomEvent.TrackSubscribed, (track) => {
+    room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
       if (track.kind === Track.Kind.Audio) {
         const audioElement = track.attach();
         audioElement.volume = volume;
         document.body.appendChild(audioElement);
 
-        // Set up audio analysis for lip sync
-        const ctx = new AudioContext();
+        // Set up audio analysis for lip sync with real-time audio output
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
         const analyzer = ctx.createAnalyser();
-        analyzer.fftSize = 256;
+        analyzer.fftSize = 512; // Higher resolution for better analysis
+        analyzer.smoothingTimeConstant = 0.3; // Smoother transitions
+        
+        // Create a media element source from the audio element
+        // This allows us to analyze the audio while it plays
         const source = ctx.createMediaElementSource(audioElement);
         source.connect(analyzer);
+        
+        // Connect analyzer to destination to maintain audio playback
         analyzer.connect(ctx.destination);
         
         setAudioContext(ctx);
@@ -69,7 +75,28 @@ export const useLiveKit = () => {
       setRobotState(isPlaying ? "speaking" : "listening");
     });
 
-    // Listen for data messages for state updates and text messages
+    // Listen for text messages on the 'lk.chat' topic (LiveKit standard for chat)
+    room.on(RoomEvent.TextReceived, (text: string, participant, info) => {
+      // Only process messages from the 'lk.chat' topic
+      if (info?.topic === 'lk.chat') {
+        const newMessage: Message = {
+          id: info.id || Date.now().toString(),
+          role: participant?.identity === room.localParticipant.identity ? "user" : "assistant",
+          content: text,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, newMessage]);
+        
+        // Update emotional state based on content
+        if (text.includes("?")) {
+          setEmotionalState("confused");
+        } else if (text.includes("!")) {
+          setEmotionalState("surprised");
+        }
+      }
+    });
+
+    // Also listen for data messages for state/emotion updates
     room.on(RoomEvent.DataReceived, (payload: Uint8Array, participant, topic) => {
       try {
         const decoder = new TextDecoder();
@@ -79,28 +106,12 @@ export const useLiveKit = () => {
         try {
           const data = JSON.parse(text);
           if (data.type === "state") {
-            setRobotState(data.state);
-          } else if (data.type === "emotion") {
-            setEmotionalState(data.emotion);
-          } else if (data.type === "message") {
-            // Handle text messages
-            const newMessage: Message = {
-              id: Date.now().toString(),
-              role: participant?.identity === room.localParticipant.identity ? "user" : "assistant",
-              content: data.content || text,
-              timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, newMessage]);
+        setRobotState(data.state);
+      } else if (data.type === "emotion") {
+        setEmotionalState(data.emotion);
           }
         } catch {
-          // Not JSON, treat as plain text message
-          const newMessage: Message = {
-            id: Date.now().toString(),
-            role: participant?.identity === room.localParticipant.identity ? "user" : "assistant",
-            content: text,
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, newMessage]);
+          // Not JSON, ignore
         }
       } catch (e) {
         console.error("Error processing data:", e);
@@ -116,29 +127,49 @@ export const useLiveKit = () => {
     };
   }, [room, volume]);
 
-  // Real-time audio analysis for lip sync
+  // Real-time audio analysis for lip sync - updates at 60fps for smooth animation
   useEffect(() => {
     if (isSpeaking && audioAnalyzer) {
       const bufferLength = audioAnalyzer.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
+      const timeDataArray = new Uint8Array(bufferLength);
+      
+      let animationFrameId: number;
       
       const analyzeAudio = () => {
-        if (!isSpeaking) return;
-        
-        audioAnalyzer.getByteFrequencyData(dataArray);
-        
-        // Calculate average amplitude for mouth opening
-        let sum = 0;
-        for (let i = 0; i < bufferLength; i++) {
-          sum += dataArray[i];
+        if (!isSpeaking || !audioAnalyzer) {
+          return;
         }
-        const average = sum / bufferLength;
-        const normalizedLevel = Math.min(average / 128, 1); // Normalize to 0-1
+        
+        // Get frequency data for amplitude analysis
+        audioAnalyzer.getByteFrequencyData(dataArray);
+        // Get time domain data for better real-time response
+        audioAnalyzer.getByteTimeDomainData(timeDataArray);
+        
+        // Calculate RMS (Root Mean Square) from time domain for more accurate audio level
+        let sumSquares = 0;
+        for (let i = 0; i < timeDataArray.length; i++) {
+          const normalized = (timeDataArray[i] - 128) / 128;
+          sumSquares += normalized * normalized;
+        }
+        const rms = Math.sqrt(sumSquares / timeDataArray.length);
+        const normalizedLevel = Math.min(rms * 2, 1); // Scale and clamp to 0-1
+        
+        // Calculate average frequency amplitude for additional smoothing
+        let freqSum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          freqSum += dataArray[i];
+        }
+        const freqAverage = freqSum / dataArray.length;
+        const freqLevel = Math.min(freqAverage / 128, 1);
+        
+        // Combine both for more accurate audio level
+        const combinedLevel = (normalizedLevel * 0.7 + freqLevel * 0.3);
         
         // Calculate dominant frequency for visualization
         let maxValue = 0;
         let maxIndex = 0;
-        for (let i = 0; i < bufferLength; i++) {
+        for (let i = 0; i < dataArray.length; i++) {
           if (dataArray[i] > maxValue) {
             maxValue = dataArray[i];
             maxIndex = i;
@@ -146,20 +177,29 @@ export const useLiveKit = () => {
         }
         const normalizedFreq = maxIndex / bufferLength;
         
-        setAudioLevel(normalizedLevel);
+        // Update state with smooth values
+        setAudioLevel(combinedLevel);
         setFrequency(normalizedFreq * 3); // Scale for visualization
         
         // Update emotional state based on audio characteristics
-        if (normalizedLevel > 0.7) {
+        if (combinedLevel > 0.7) {
           setEmotionalState("happy");
-        } else if (normalizedLevel > 0.4) {
+        } else if (combinedLevel > 0.4) {
           setEmotionalState("neutral");
         }
         
-        requestAnimationFrame(analyzeAudio);
+        // Continue animation loop
+        animationFrameId = requestAnimationFrame(analyzeAudio);
       };
       
+      // Start the analysis loop
       analyzeAudio();
+      
+      return () => {
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
+      };
     } else if (!isSpeaking) {
       setAudioLevel(0);
       setFrequency(0);
@@ -255,17 +295,15 @@ export const useLiveKit = () => {
     setMessages((prev) => [...prev, message]);
 
     try {
-      // Send as data message
-      const encoder = new TextEncoder();
-      const data = JSON.stringify({
-        type: "message",
-        content: text,
+      // Send text message using LiveKit's text stream API with 'lk.chat' topic
+      // This is the standard way LiveKit handles chat messages (like in the playground)
+      console.log("Sending text message:", text, "on topic: lk.chat");
+      const result = await room.localParticipant.sendText(text, {
+        topic: 'lk.chat',
       });
-      await room.localParticipant.publishData(encoder.encode(data), {
-        reliable: true,
-      });
+      console.log("Text message sent successfully:", result);
     } catch (error) {
-      console.error("Failed to send message:", error);
+      console.error("Failed to send text message:", error);
       // Remove the message from state if sending failed
       setMessages((prev) => prev.filter((msg) => msg.id !== message.id));
     }

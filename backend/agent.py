@@ -11,9 +11,13 @@ from livekit.plugins import (
 from mcp_client import MCPServerSse
 from mcp_client.agent_tools import MCPToolsIntegration
 import os
+import logging
 from tools import open_url
 
 load_dotenv()
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 
 class Assistant(Agent):
@@ -32,7 +36,7 @@ async def entrypoint(ctx: agents.JobContext):
     session = AgentSession(
         llm=google.beta.realtime.RealtimeModel(
             voice="Charon",
-            temperature=0.7,
+            temperature=0.5,
         ),
     )
 
@@ -52,18 +56,28 @@ async def entrypoint(ctx: agents.JobContext):
     # Custom text input handler for processing text messages on 'lk.chat' topic
     # This is how LiveKit playground handles text messages during calls
     # The callback receives (session, event) as arguments
+    # TextInputEvent is a dataclass with: text (str), info (rtc.TextStreamInfo), participant (rtc.RemoteParticipant)
     async def handle_text_input(session: AgentSession, event: TextInputEvent) -> None:
         """Handle incoming text messages from participants"""
         try:
+            # Access text from the event (TextInputEvent is a dataclass)
             text = event.text.strip()
             if not text:
+                logger.debug("Received empty text message, ignoring")
                 return
             
+            # Get participant identity
             participant_identity = event.participant.identity if event.participant else 'unknown'
-            ctx.logger.info(f"Received text message from {participant_identity} on topic '{event.topic}': {text}")
             
-            # Only process messages from 'lk.chat' topic (LiveKit standard for chat)
-            if event.topic == 'lk.chat':
+            # Get topic from info object (TextStreamInfo has a topic attribute)
+            topic = event.info.topic if event.info else None
+            
+            logger.info(f"Received text message from {participant_identity} on topic '{topic}': {text}")
+            
+            # Process messages from 'lk.chat' topic (LiveKit standard for chat)
+            # Also accept messages without topic for flexibility
+            if topic == 'lk.chat' or topic is None:
+                logger.info(f"Processing text message: {text}")
                 # Interrupt any current speech to respond to the text message
                 session.interrupt()
                 # Generate a reply to the text message
@@ -71,14 +85,18 @@ async def entrypoint(ctx: agents.JobContext):
                     user_input=text,
                     instructions=SESSION_INSTRUCTION,
                 )
+            else:
+                logger.debug(f"Ignoring text message on topic '{topic}' (not 'lk.chat')")
         except Exception as e:
-            ctx.logger.error(f"Error handling text input: {e}")
+            logger.error(f"Error handling text input: {e}", exc_info=True)
 
     # Start the session AFTER connecting
     await session.start(
         room=ctx.room,
         agent=agent,
         room_input_options=RoomInputOptions(
+            # Enable text input for chat messages
+            text_enabled=True,
             # LiveKit Cloud enhanced noise cancellation
             # - If self-hosting, omit this parameter
             # - For telephony applications, use `BVCTelephony` for best results
