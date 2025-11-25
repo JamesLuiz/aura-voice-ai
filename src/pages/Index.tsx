@@ -32,20 +32,18 @@ const Index = () => {
 
   const handleConnect = async () => {
     try {
-      // TODO: Replace with your actual LiveKit URL and token
-      const url = "wss://your-livekit-server.com";
-      const token = "your-token-here";
-      
-      await connect(url, token);
+      await connect();
       
       toast({
         title: "Connected",
         description: "You're now connected to Voxa",
       });
     } catch (error) {
+      console.error("Connection error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to connect to Voxa. Please ensure the backend server is running and LiveKit is configured.";
       toast({
         title: "Connection failed",
-        description: "Failed to connect to Voxa. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }

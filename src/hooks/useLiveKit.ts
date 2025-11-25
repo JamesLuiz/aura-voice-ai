@@ -56,29 +56,41 @@ export const useLiveKit = () => {
       setRobotState(isPlaying ? "speaking" : "listening");
     });
 
-    room.on(RoomEvent.DataReceived, (payload: Uint8Array) => {
-      const decoder = new TextDecoder();
-      const data = JSON.parse(decoder.decode(payload));
-      
-      if (data.type === "transcript") {
+    // Listen for text messages on the 'lk.chat' topic (LiveKit standard for chat)
+    room.on(RoomEvent.TextReceived, (text: string, participant, info) => {
+      // Only process messages from the 'lk.chat' topic
+      if (info?.topic === 'lk.chat') {
         const newMessage: Message = {
-          id: Date.now().toString(),
-          role: data.role,
-          content: data.text,
+          id: info.id || Date.now().toString(),
+          role: participant.identity === room.localParticipant.identity ? "user" : "assistant",
+          content: text,
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, newMessage]);
         
-        // Simulate emotional state based on content (in real app, this would come from AI)
-        if (data.text.includes("?")) {
+        // Update emotional state based on content
+        if (text.includes("?")) {
           setEmotionalState("confused");
-        } else if (data.text.includes("!")) {
+        } else if (text.includes("!")) {
           setEmotionalState("surprised");
         }
-      } else if (data.type === "state") {
-        setRobotState(data.state);
-      } else if (data.type === "emotion") {
-        setEmotionalState(data.emotion);
+      }
+    });
+
+    // Also listen for data messages for backward compatibility and other message types
+    room.on(RoomEvent.DataReceived, (payload: Uint8Array, participant, topic) => {
+      // Handle non-text data messages (e.g., state updates)
+      try {
+        const decoder = new TextDecoder();
+        const data = JSON.parse(decoder.decode(payload));
+        
+        if (data.type === "state") {
+          setRobotState(data.state);
+        } else if (data.type === "emotion") {
+          setEmotionalState(data.emotion);
+        }
+      } catch (e) {
+        // Ignore non-JSON data messages
       }
     });
 
@@ -121,9 +133,39 @@ export const useLiveKit = () => {
     }
   }, [isSpeaking, robotState]);
 
-  const connect = useCallback(async (url: string, token: string) => {
+  const connect = useCallback(async (url?: string, token?: string) => {
     try {
       setRobotState("processing");
+      
+      // If URL and token are not provided, fetch from backend
+      if (!url || !token) {
+        // First get the LiveKit URL
+        const urlResponse = await fetch("http://localhost:5001/getLiveKitUrl");
+        if (!urlResponse.ok) {
+          throw new Error(`Failed to get LiveKit URL: ${urlResponse.statusText}`);
+        }
+        const urlData = await urlResponse.json();
+        if (!urlData.url || urlData.url === "wss://your-livekit-server.com") {
+          throw new Error("LiveKit URL not configured. Please set LIVEKIT_URL in your .env file.");
+        }
+        url = urlData.url;
+        
+        // Then get the token
+        const tokenResponse = await fetch("http://localhost:5001/getToken?name=user");
+        if (!tokenResponse.ok) {
+          throw new Error(`Failed to get token: ${tokenResponse.statusText}`);
+        }
+        const tokenData = await tokenResponse.json();
+        if (tokenData.error) {
+          throw new Error(tokenData.error);
+        }
+        token = tokenData.token;
+      }
+      
+      if (!url || !token) {
+        throw new Error("Missing LiveKit URL or token");
+      }
+      
       await room.connect(url, token);
       await room.localParticipant.setMicrophoneEnabled(true);
       setIsListening(true);
@@ -161,8 +203,8 @@ export const useLiveKit = () => {
     });
   }, [room]);
 
-  const sendMessage = useCallback((text: string) => {
-    if (!isConnected) return;
+  const sendMessage = useCallback(async (text: string) => {
+    if (!isConnected || !text.trim()) return;
 
     const message: Message = {
       id: Date.now().toString(),
@@ -171,11 +213,20 @@ export const useLiveKit = () => {
       timestamp: new Date(),
     };
     
+    // Add message to local state immediately for better UX
     setMessages((prev) => [...prev, message]);
 
-    const encoder = new TextEncoder();
-    const data = encoder.encode(JSON.stringify({ text }));
-    room.localParticipant.publishData(data, { reliable: true });
+    try {
+      // Send text message using LiveKit's text stream API with 'lk.chat' topic
+      // This is the standard way LiveKit handles chat messages (like in the playground)
+      await room.localParticipant.sendText(text, {
+        topic: 'lk.chat',
+      });
+    } catch (error) {
+      console.error("Failed to send text message:", error);
+      // Remove the message from state if sending failed
+      setMessages((prev) => prev.filter((msg) => msg.id !== message.id));
+    }
   }, [room, isConnected]);
 
   return {
