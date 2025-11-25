@@ -1,0 +1,5 @@
+[project]
+  subdomain = "my-assistant-c6368eft"
+
+[agent]
+  id = "CA_bpw7YS3MuCNx"

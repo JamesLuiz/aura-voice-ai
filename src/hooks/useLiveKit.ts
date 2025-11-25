@@ -18,6 +18,50 @@ export type RobotState = "idle" | "listening" | "thinking" | "speaking" | "proce
 export type EmotionalState = "neutral" | "happy" | "thinking" | "confused" | "surprised";
 
 export const useLiveKit = () => {
+  const LOCAL_BACKEND = "http://localhost:5001";
+  const RENDER_BACKEND = "https://aura-voice-ai-2.onrender.com";
+
+  const fetchWithTimeout = useCallback(
+    async (url: string, options?: RequestInit, timeout = 4000) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeout);
+      try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        return response;
+      } finally {
+        clearTimeout(timer);
+      }
+    },
+    []
+  );
+
+  const fetchFromBackend = useCallback(
+    async (path: string, options?: RequestInit) => {
+      const endpoints = [
+        `${LOCAL_BACKEND}${path}`,
+        `${RENDER_BACKEND}${path}`,
+      ];
+
+      for (const url of endpoints) {
+        try {
+          const response =
+            url.startsWith(LOCAL_BACKEND) ?
+              await fetchWithTimeout(url, options) :
+              await fetch(url, options);
+
+          if (response.ok) {
+            return response;
+          }
+          console.warn(`Backend request to ${url} failed with status ${response.status}`);
+        } catch (error) {
+          console.warn(`Backend request to ${url} failed:`, error);
+        }
+      }
+
+      throw new Error("Unable to reach backend server. Please ensure it is running locally or deployed.");
+    },
+    [LOCAL_BACKEND, RENDER_BACKEND, fetchWithTimeout]
+  );
   const [room] = useState(() => new Room());
   const [isConnected, setIsConnected] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -46,7 +90,11 @@ export const useLiveKit = () => {
 
     room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
       // Only analyze remote participant audio (the agent's audio), not local participant
-      if (track.kind === Track.Kind.Audio && participant && participant !== room.localParticipant) {
+      if (
+        track.kind === Track.Kind.Audio &&
+        participant &&
+        participant.identity !== room.localParticipant.identity
+      ) {
         console.log("Setting up audio analysis for agent:", participant.identity);
         
         const audioElement = track.attach();
@@ -110,7 +158,11 @@ export const useLiveKit = () => {
 
     // Listen for when remote participants start/stop speaking
     room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
-      if (track.kind === Track.Kind.Audio && participant && participant !== room.localParticipant) {
+      if (
+        track.kind === Track.Kind.Audio &&
+        participant &&
+        participant.identity !== room.localParticipant.identity
+      ) {
         // Monitor when the agent's audio track becomes active
         track.on("muted", () => {
           setIsSpeaking(false);
@@ -133,45 +185,35 @@ export const useLiveKit = () => {
       }
     });
 
-    // Listen for text messages on the 'lk.chat' topic (LiveKit standard for chat)
-    room.on(RoomEvent.TextReceived, (text: string, participant, info) => {
-      // Only process messages from the 'lk.chat' topic
-      if (info?.topic === 'lk.chat') {
-        const newMessage: Message = {
-          id: info.id || Date.now().toString(),
-          role: participant?.identity === room.localParticipant.identity ? "user" : "assistant",
-          content: text,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, newMessage]);
-        
-        // Update emotional state based on content
-        if (text.includes("?")) {
-          setEmotionalState("confused");
-        } else if (text.includes("!")) {
-          setEmotionalState("surprised");
-        }
-      }
-    });
-
-    // Also listen for data messages for state/emotion updates
-    room.on(RoomEvent.DataReceived, (payload: Uint8Array, participant, topic) => {
+    // Listen for messages via data channel (text, state updates, etc.)
+    room.on(RoomEvent.DataReceived, (payload: Uint8Array, participant) => {
       try {
         const decoder = new TextDecoder();
         const text = decoder.decode(payload);
-        
-        // Try to parse as JSON for state/emotion updates
-        try {
-          const data = JSON.parse(text);
-          if (data.type === "state") {
-        setRobotState(data.state);
-      } else if (data.type === "emotion") {
-        setEmotionalState(data.emotion);
+        const senderIdentity = participant?.identity ?? "assistant";
+
+        const data = JSON.parse(text);
+        if (data.type === "message" && data.content) {
+          const newMessage: Message = {
+            id: Date.now().toString(),
+            role: senderIdentity === room.localParticipant.identity ? "user" : "assistant",
+            content: data.content,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, newMessage]);
+
+          if (data.content.includes("?")) {
+            setEmotionalState("confused");
+          } else if (data.content.includes("!")) {
+            setEmotionalState("surprised");
           }
-        } catch {
-          // Not JSON, ignore
+        } else if (data.type === "state" && data.state) {
+          setRobotState(data.state);
+        } else if (data.type === "emotion" && data.emotion) {
+          setEmotionalState(data.emotion);
         }
       } catch (e) {
+        // Not JSON or unexpected payload; log and ignore
         console.error("Error processing data:", e);
       }
     });
@@ -291,7 +333,7 @@ export const useLiveKit = () => {
       setAudioLevel(0);
       setFrequency(0);
       setIsSpeaking(false);
-    }
+      }
   }, [audioAnalyzer, robotState]);
 
   const connect = useCallback(async (url?: string, token?: string) => {
@@ -301,21 +343,15 @@ export const useLiveKit = () => {
       // If URL and token are not provided, fetch from backend
       if (!url || !token) {
         // First get the LiveKit URL
-        const urlResponse = await fetch("http://localhost:5001/getLiveKitUrl");
-        if (!urlResponse.ok) {
-          throw new Error(`Failed to get LiveKit URL: ${urlResponse.statusText}`);
-        }
+        const urlResponse = await fetchFromBackend("/getLiveKitUrl");
         const urlData = await urlResponse.json();
         if (!urlData.url || urlData.url === "wss://your-livekit-server.com") {
-          throw new Error("LiveKit URL not configured. Please set LIVEKIT_URL in your .env file.");
+          throw new Error("LiveKit URL not configured. Please set LIVEKIT_URL in your backend environment.");
         }
         url = urlData.url;
-        
+
         // Then get the token
-        const tokenResponse = await fetch("http://localhost:5001/getToken?name=user");
-        if (!tokenResponse.ok) {
-          throw new Error(`Failed to get token: ${tokenResponse.statusText}`);
-        }
+        const tokenResponse = await fetchFromBackend("/getToken?name=user");
         const tokenData = await tokenResponse.json();
         if (tokenData.error) {
           throw new Error(tokenData.error);

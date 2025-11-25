@@ -12,6 +12,7 @@ from mcp_client import MCPServerSse
 from mcp_client.agent_tools import MCPToolsIntegration
 import os
 import logging
+import sys
 from tools import open_url
 
 load_dotenv()
@@ -117,11 +118,14 @@ async def entrypoint(ctx: agents.JobContext):
 
 
 if __name__ == "__main__":
-    # Get environment variables
+    # Detect if we're just downloading files during container build
+    skip_env_validation = len(sys.argv) > 1 and sys.argv[1] == "download-files"
+
+    # Get environment variables (may be missing during download-files)
     livekit_url = os.getenv("LIVEKIT_URL")
     livekit_api_key = os.getenv("LIVEKIT_API_KEY")
     livekit_api_secret = os.getenv("LIVEKIT_API_SECRET")
-    
+
     print("=" * 60)
     print("Agent Worker Configuration:")
     print("=" * 60)
@@ -129,16 +133,23 @@ if __name__ == "__main__":
     print(f"LIVEKIT_API_KEY: {'SET' if livekit_api_key else 'NOT SET'}")
     print(f"LIVEKIT_API_SECRET: {'SET' if livekit_api_secret else 'NOT SET'}")
     print("=" * 60)
-    
-    if not livekit_url or livekit_url == "wss://your-livekit-server.com":
-        print("ERROR: LIVEKIT_URL is not properly configured!")
-        print("Please set LIVEKIT_URL in your .env file.")
-        exit(1)
-    
-    if not livekit_api_key or not livekit_api_secret:
-        print("ERROR: LIVEKIT_API_KEY and LIVEKIT_API_SECRET must be set!")
-        print("Please set these in your .env file.")
-        exit(1)
+
+    if skip_env_validation:
+        print("download-files detected; skipping LiveKit environment validation.")
+        # Provide placeholder values so the CLI can run download-files without connecting
+        livekit_url = livekit_url or "wss://placeholder.livekit.invalid"
+        livekit_api_key = livekit_api_key or "placeholder_key"
+        livekit_api_secret = livekit_api_secret or "placeholder_secret"
+    else:
+        if not livekit_url or livekit_url == "wss://your-livekit-server.com":
+            print("ERROR: LIVEKIT_URL is not properly configured!")
+            print("Please set LIVEKIT_URL in your .env file.")
+            exit(1)
+
+        if not livekit_api_key or not livekit_api_secret:
+            print("ERROR: LIVEKIT_API_KEY and LIVEKIT_API_SECRET must be set!")
+            print("Please set these in your .env file.")
+            exit(1)
     
     # WorkerOptions defaults to ws://localhost:7880, so we need to explicitly pass ws_url
     # Convert wss:// to ws:// for the worker connection (worker uses ws://, not wss://)
