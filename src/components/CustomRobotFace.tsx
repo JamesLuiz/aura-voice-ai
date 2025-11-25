@@ -18,9 +18,10 @@ const CustomRobotFace = ({
   emotionalState,
   robotState,
 }: CustomRobotFaceProps) => {
-  // Enhanced lip sync with more dynamic scaling
-  const lipSyncScale = isSpeaking ? 1 + audioLevel * 1.2 : 1;
-  const jawOpenness = isSpeaking ? audioLevel * 1.5 : 0;
+  // Enhanced lip sync with MUCH more dynamic scaling for visibility
+  const amplifiedAudioLevel = Math.min(audioLevel * 3, 1); // Amplify for visibility
+  const lipSyncScale = isSpeaking ? 1 + amplifiedAudioLevel * 2 : 1;
+  const jawOpenness = isSpeaking ? amplifiedAudioLevel * 2.5 : 0;
 
   const getStateColor = () => {
     switch (robotState) {
@@ -385,48 +386,67 @@ const CustomRobotFace = ({
           />
         )}
 
-        {/* Speaking Mouth - Enhanced Lip Sync */}
+        {/* Speaking Mouth - DRAMATICALLY Enhanced Lip Sync */}
         {isSpeaking && (
           <>
-            {/* Outer mouth with jaw movement */}
+            {/* Outer mouth with PRONOUNCED jaw movement */}
             <motion.ellipse
               cx="100"
-              cy={145 + jawOpenness * 8}
-              rx={16 + audioLevel * 12}
-              ry={8 + audioLevel * 15}
-              fill="hsl(220 20% 8%)"
+              cy={145 + jawOpenness * 15}
+              rx={20 + amplifiedAudioLevel * 25}
+              ry={12 + amplifiedAudioLevel * 30}
+              fill="hsl(220 20% 5%)"
               stroke={getStateColor()}
-              strokeWidth="2"
+              strokeWidth="3"
+              style={{
+                filter: `drop-shadow(0 0 8px ${getStateColor()})`
+              }}
+              animate={{
+                ry: 12 + amplifiedAudioLevel * 30,
+                rx: 20 + amplifiedAudioLevel * 25,
+                cy: 145 + jawOpenness * 15,
+              }}
               transition={{
-                duration: 0.03,
+                duration: 0.05,
                 ease: "linear",
               }}
             />
-            {/* Inner glow tongue effect */}
+            {/* Inner glow tongue effect - more vibrant */}
             <motion.ellipse
               cx="100"
-              cy={147 + jawOpenness * 6}
-              rx={12 + audioLevel * 8}
-              ry={5 + audioLevel * 10}
+              cy={148 + jawOpenness * 12}
+              rx={15 + amplifiedAudioLevel * 18}
+              ry={8 + amplifiedAudioLevel * 20}
               fill={getStateColor()}
-              opacity={0.3 + audioLevel * 0.5}
+              opacity={0.4 + amplifiedAudioLevel * 0.6}
+              animate={{
+                ry: 8 + amplifiedAudioLevel * 20,
+                rx: 15 + amplifiedAudioLevel * 18,
+                cy: 148 + jawOpenness * 12,
+              }}
               transition={{
-                duration: 0.03,
+                duration: 0.05,
                 ease: "linear",
               }}
             />
-            {/* Teeth line for realism */}
-            {audioLevel > 0.3 && (
+            {/* Teeth line for realism - always visible when speaking */}
+            {amplifiedAudioLevel > 0.15 && (
               <motion.line
-                x1={100 - (8 + audioLevel * 6)}
-                y1={145 + jawOpenness * 4}
-                x2={100 + (8 + audioLevel * 6)}
-                y2={145 + jawOpenness * 4}
-                stroke="hsl(220 20% 80%)"
-                strokeWidth="1.5"
-                opacity={audioLevel * 0.6}
+                x1={100 - (12 + amplifiedAudioLevel * 15)}
+                y1={145 + jawOpenness * 8}
+                x2={100 + (12 + amplifiedAudioLevel * 15)}
+                y2={145 + jawOpenness * 8}
+                stroke="hsl(220 20% 85%)"
+                strokeWidth="2"
+                opacity={0.7 + amplifiedAudioLevel * 0.3}
+                animate={{
+                  x1: 100 - (12 + amplifiedAudioLevel * 15),
+                  x2: 100 + (12 + amplifiedAudioLevel * 15),
+                  y1: 145 + jawOpenness * 8,
+                  y2: 145 + jawOpenness * 8,
+                }}
                 transition={{
-                  duration: 0.03,
+                  duration: 0.05,
                   ease: "linear",
                 }}
               />
