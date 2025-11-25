@@ -18,9 +18,10 @@ const CustomRobotFace = ({
   emotionalState,
   robotState,
 }: CustomRobotFaceProps) => {
-  // Enhanced lip sync with more dynamic scaling
-  const lipSyncScale = isSpeaking ? 1 + audioLevel * 1.2 : 1;
-  const jawOpenness = isSpeaking ? audioLevel * 1.5 : 0;
+  // Enhanced lip sync with MUCH more dynamic scaling for visibility
+  const amplifiedAudioLevel = Math.min(audioLevel * 3, 1); // Amplify for visibility
+  const lipSyncScale = isSpeaking ? 1 + amplifiedAudioLevel * 2 : 1;
+  const jawOpenness = isSpeaking ? amplifiedAudioLevel * 2.5 : 0;
 
   const getStateColor = () => {
     switch (robotState) {
@@ -385,51 +386,137 @@ const CustomRobotFace = ({
           />
         )}
 
-        {/* Speaking Mouth - Enhanced Lip Sync */}
+        {/* Speaking Mouth - Dynamic Shape-Shifting */}
         {isSpeaking && (
           <>
-            {/* Outer mouth with jaw movement */}
-            <motion.ellipse
-              cx="100"
-              cy={145 + jawOpenness * 8}
-              rx={16 + audioLevel * 12}
-              ry={8 + audioLevel * 15}
-              fill="hsl(220 20% 8%)"
-              stroke={getStateColor()}
-              strokeWidth="2"
-              transition={{
-                duration: 0.03,
-                ease: "linear",
-              }}
-            />
-            {/* Inner glow tongue effect */}
-            <motion.ellipse
-              cx="100"
-              cy={147 + jawOpenness * 6}
-              rx={12 + audioLevel * 8}
-              ry={5 + audioLevel * 10}
-              fill={getStateColor()}
-              opacity={0.3 + audioLevel * 0.5}
-              transition={{
-                duration: 0.03,
-                ease: "linear",
-              }}
-            />
-            {/* Teeth line for realism */}
-            {audioLevel > 0.3 && (
-              <motion.line
-                x1={100 - (8 + audioLevel * 6)}
-                y1={145 + jawOpenness * 4}
-                x2={100 + (8 + audioLevel * 6)}
-                y2={145 + jawOpenness * 4}
-                stroke="hsl(220 20% 80%)"
-                strokeWidth="1.5"
-                opacity={audioLevel * 0.6}
-                transition={{
-                  duration: 0.03,
-                  ease: "linear",
-                }}
-              />
+            {/* Determine mouth shape based on audio level ranges */}
+            {amplifiedAudioLevel < 0.3 && (
+              /* Small circle mouth for quiet sounds */
+              <>
+                <motion.circle
+                  cx="100"
+                  cy={145 + jawOpenness * 12}
+                  r={8 + amplifiedAudioLevel * 20}
+                  fill="hsl(220 20% 5%)"
+                  stroke={getStateColor()}
+                  strokeWidth="3"
+                  style={{
+                    filter: `drop-shadow(0 0 8px ${getStateColor()})`
+                  }}
+                  animate={{
+                    r: 8 + amplifiedAudioLevel * 20,
+                    cy: 145 + jawOpenness * 12,
+                  }}
+                  transition={{
+                    duration: 0.05,
+                    ease: "linear",
+                  }}
+                />
+                <motion.circle
+                  cx="100"
+                  cy={145 + jawOpenness * 12}
+                  r={5 + amplifiedAudioLevel * 12}
+                  fill={getStateColor()}
+                  opacity={0.5 + amplifiedAudioLevel * 0.5}
+                />
+              </>
+            )}
+
+            {amplifiedAudioLevel >= 0.3 && amplifiedAudioLevel < 0.6 && (
+              /* Rectangle/Square mouth for mid-range sounds */
+              <>
+                <motion.rect
+                  x={100 - (15 + amplifiedAudioLevel * 20)}
+                  y={140 + jawOpenness * 10}
+                  width={(15 + amplifiedAudioLevel * 20) * 2}
+                  height={10 + amplifiedAudioLevel * 25}
+                  rx="4"
+                  fill="hsl(220 20% 5%)"
+                  stroke={getStateColor()}
+                  strokeWidth="3"
+                  style={{
+                    filter: `drop-shadow(0 0 8px ${getStateColor()})`
+                  }}
+                  animate={{
+                    width: (15 + amplifiedAudioLevel * 20) * 2,
+                    height: 10 + amplifiedAudioLevel * 25,
+                    x: 100 - (15 + amplifiedAudioLevel * 20),
+                    y: 140 + jawOpenness * 10,
+                  }}
+                  transition={{
+                    duration: 0.05,
+                    ease: "linear",
+                  }}
+                />
+                <motion.rect
+                  x={100 - (10 + amplifiedAudioLevel * 15)}
+                  y={142 + jawOpenness * 10}
+                  width={(10 + amplifiedAudioLevel * 15) * 2}
+                  height={6 + amplifiedAudioLevel * 18}
+                  rx="3"
+                  fill={getStateColor()}
+                  opacity={0.4 + amplifiedAudioLevel * 0.4}
+                />
+                {/* Teeth line for mid-range */}
+                <motion.line
+                  x1={100 - (12 + amplifiedAudioLevel * 15)}
+                  y1={143 + jawOpenness * 8}
+                  x2={100 + (12 + amplifiedAudioLevel * 15)}
+                  y2={143 + jawOpenness * 8}
+                  stroke="hsl(220 20% 85%)"
+                  strokeWidth="2"
+                  opacity="0.7"
+                />
+              </>
+            )}
+
+            {amplifiedAudioLevel >= 0.6 && (
+              /* Triangle/Diamond mouth for loud sounds */
+              <>
+                <motion.path
+                  d={`M 100 ${135 + jawOpenness * 8} 
+                      L ${100 - (25 + amplifiedAudioLevel * 30)} ${148 + jawOpenness * 15}
+                      L 100 ${158 + jawOpenness * 22}
+                      L ${100 + (25 + amplifiedAudioLevel * 30)} ${148 + jawOpenness * 15}
+                      Z`}
+                  fill="hsl(220 20% 5%)"
+                  stroke={getStateColor()}
+                  strokeWidth="3"
+                  style={{
+                    filter: `drop-shadow(0 0 12px ${getStateColor()})`
+                  }}
+                  animate={{
+                    d: `M 100 ${135 + jawOpenness * 8} 
+                        L ${100 - (25 + amplifiedAudioLevel * 30)} ${148 + jawOpenness * 15}
+                        L 100 ${158 + jawOpenness * 22}
+                        L ${100 + (25 + amplifiedAudioLevel * 30)} ${148 + jawOpenness * 15}
+                        Z`,
+                  }}
+                  transition={{
+                    duration: 0.05,
+                    ease: "linear",
+                  }}
+                />
+                <motion.path
+                  d={`M 100 ${140 + jawOpenness * 8} 
+                      L ${100 - (18 + amplifiedAudioLevel * 22)} ${148 + jawOpenness * 12}
+                      L 100 ${153 + jawOpenness * 18}
+                      L ${100 + (18 + amplifiedAudioLevel * 22)} ${148 + jawOpenness * 12}
+                      Z`}
+                  fill={getStateColor()}
+                  opacity={0.5 + amplifiedAudioLevel * 0.5}
+                />
+                {/* Teeth for loud sounds */}
+                <motion.line
+                  x1={100 - (15 + amplifiedAudioLevel * 20)}
+                  y1={145 + jawOpenness * 10}
+                  x2={100 + (15 + amplifiedAudioLevel * 20)}
+                  y2={145 + jawOpenness * 10}
+                  stroke="hsl(220 20% 85%)"
+                  strokeWidth="2.5"
+                  opacity="0.8"
+                />
+              </>
             )}
           </>
         )}
