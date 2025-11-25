@@ -18,18 +18,17 @@ const CustomRobotFace = ({
   emotionalState,
   robotState,
 }: CustomRobotFaceProps) => {
-  // Enhanced lip sync with MUCH more dynamic scaling for visibility
-  // Ensure minimum value when speaking so mouth is always visible
-  // If audioLevel is 0 but speaking, use a pulsing animation
-  const effectiveAudioLevel = isSpeaking 
-    ? (audioLevel > 0 ? Math.max(audioLevel, 0.1) : 0.2) // Use 0.2 as fallback if no audio detected
+  // Enhanced lip sync logic
+  // FIX 1: Adjusted thresholds so fallback (0.1) allows for the "Small Mouth" to appear
+  const effectiveAudioLevel = isSpeaking
+    ? (audioLevel > 0 ? Math.max(audioLevel, 0.1) : 0.1) 
     : audioLevel;
-  const amplifiedAudioLevel = Math.min(effectiveAudioLevel * 4, 1); // Amplify more for visibility
+    
+  const amplifiedAudioLevel = Math.min(effectiveAudioLevel * 4, 1);
   
-  // Ensure mouth is always visible when speaking, even if audio analysis isn't working
-  // Use a minimum value that creates visible mouth movement
-  const finalAmplifiedLevel = isSpeaking && amplifiedAudioLevel < 0.3
-    ? Math.max(amplifiedAudioLevel, 0.3) // Minimum 0.3 when speaking to ensure mouth is visible
+  // FIX 2: Lowered the forced minimum from 0.3 to 0.15 so the < 0.3 condition is reachable
+  const finalAmplifiedLevel = isSpeaking && amplifiedAudioLevel < 0.15
+    ? Math.max(amplifiedAudioLevel, 0.15)
     : amplifiedAudioLevel;
   
   const lipSyncScale = isSpeaking ? 1 + finalAmplifiedLevel * 2 : 1;
@@ -57,7 +56,7 @@ const CustomRobotFace = ({
       className="w-full h-full"
       style={{ filter: "drop-shadow(0 0 20px rgba(0,0,0,0.3))" }}
     >
-      {/* Robot Head - Main Body (unchanged) */}
+      {/* Robot Head - Main Body */}
       <defs>
         <linearGradient id="headGradient" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" style={{ stopColor: "hsl(220 20% 25%)", stopOpacity: 1 }} />
@@ -69,7 +68,7 @@ const CustomRobotFace = ({
         </linearGradient>
       </defs>
 
-      {/* Head Container (unchanged) */}
+      {/* Head Container */}
       <rect
         x="30"
         y="40"
@@ -81,7 +80,7 @@ const CustomRobotFace = ({
         strokeWidth="2"
       />
 
-      {/* Top Antenna (unchanged) */}
+      {/* Top Antenna */}
       <motion.g
         animate={{
           y: isSpeaking ? [-1, 1, -1] : 0,
@@ -116,11 +115,11 @@ const CustomRobotFace = ({
         />
       </motion.g>
 
-      {/* Accent Lines on Head (unchanged) */}
+      {/* Accent Lines on Head */}
       <line x1="40" y1="60" x2="160" y2="60" stroke="url(#accentGradient)" strokeWidth="2" />
       <line x1="40" y1="70" x2="160" y2="70" stroke="url(#accentGradient)" strokeWidth="1" opacity="0.5" />
 
-      {/* Side Vents (unchanged) */}
+      {/* Side Vents */}
       <g opacity="0.7">
         <rect x="35" y="90" width="15" height="3" fill={getStateColor()} opacity="0.4" />
         <rect x="35" y="97" width="15" height="3" fill={getStateColor()} opacity="0.4" />
@@ -131,11 +130,11 @@ const CustomRobotFace = ({
         <rect x="150" y="104" width="15" height="3" fill={getStateColor()} opacity="0.4" />
       </g>
 
-      {/* Eye Sockets (unchanged) */}
+      {/* Eye Sockets */}
       <rect x="55" y="90" width="30" height="25" rx="5" fill="hsl(220 20% 10%)" />
       <rect x="115" y="90" width="30" height="25" rx="5" fill="hsl(220 20% 10%)" />
 
-      {/* Eyes - Pupils with enhanced expressions (unchanged) */}
+      {/* Eyes - Pupils with enhanced expressions */}
       {!isBlinking && (
         <>
           <motion.g
@@ -190,7 +189,7 @@ const CustomRobotFace = ({
         </>
       )}
 
-      {/* Eyelids - Blinking (unchanged) */}
+      {/* Eyelids - Blinking */}
       {isBlinking && (
         <>
           <motion.rect
@@ -218,7 +217,7 @@ const CustomRobotFace = ({
         </>
       )}
 
-      {/* Eyebrows - Enhanced Expressions (unchanged) */}
+      {/* Eyebrows - Enhanced Expressions */}
       {emotionalState === "thinking" && (
         <>
           <motion.line
@@ -341,233 +340,227 @@ const CustomRobotFace = ({
 
       {/* Mouth Area */}
       <g>
-        {/* 🐛 FIX: Only render static emotional mouths if the robot is NOT speaking. */}
-        **{!isSpeaking && (
-          <>**
-        {/* Mouth - Enhanced emotion-based expressions */}
-            {emotionalState === "happy" && (
+        {/* Only render static emotional mouths if the robot is NOT speaking */}
+        {!isSpeaking && (
           <>
-            <motion.path
-              d="M 68 138 Q 100 158, 132 138"
-              stroke={getStateColor()}
-              strokeWidth="4.5"
-              fill="none"
-              strokeLinecap="round"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            />
-            {/* Smile dimples */}
-            <circle cx="68" cy="138" r="2" fill={getStateColor()} opacity="0.4" />
-            <circle cx="132" cy="138" r="2" fill={getStateColor()} opacity="0.4" />
+            {emotionalState === "happy" && (
+              <>
+                <motion.path
+                  d="M 68 138 Q 100 158, 132 138"
+                  stroke={getStateColor()}
+                  strokeWidth="4.5"
+                  fill="none"
+                  strokeLinecap="round"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                />
+                <circle cx="68" cy="138" r="2" fill={getStateColor()} opacity="0.4" />
+                <circle cx="132" cy="138" r="2" fill={getStateColor()} opacity="0.4" />
+              </>
+            )}
+
+            {emotionalState === "confused" && (
+              <motion.path
+                d="M 68 145 Q 82 138, 100 146 Q 118 152, 132 144"
+                stroke={getStateColor()}
+                strokeWidth="3.5"
+                fill="none"
+                strokeLinecap="round"
+                animate={{
+                  d: [
+                    "M 68 145 Q 82 138, 100 146 Q 118 152, 132 144",
+                    "M 68 145 Q 82 140, 100 145 Q 118 150, 132 144",
+                    "M 68 145 Q 82 138, 100 146 Q 118 152, 132 144"
+                  ]
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+            )}
+
+            {emotionalState === "surprised" && (
+              <motion.ellipse
+                cx="100"
+                cy="148"
+                rx="14"
+                ry="18"
+                stroke={getStateColor()}
+                strokeWidth="3.5"
+                fill="hsl(220 20% 8%)"
+                initial={{ scale: 0 }}
+                animate={{ 
+                  scale: [1, 1.05, 1],
+                  ry: [18, 20, 18]
+                }}
+                transition={{ 
+                  scale: { duration: 0.3 },
+                  ry: { duration: 0.5, repeat: Infinity }
+                }}
+              />
+            )}
+
+            {emotionalState === "neutral" && (
+              <motion.line
+                x1="80"
+                y1="145"
+                x2="120"
+                y2="145"
+                stroke={getStateColor()}
+                strokeWidth="3"
+                strokeLinecap="round"
+                opacity="0.7"
+              />
+            )}
+
+            {emotionalState === "thinking" && (
+              <motion.line
+                x1="80"
+                y1="145"
+                x2="120"
+                y2="148"
+                stroke={getStateColor()}
+                strokeWidth="3"
+                strokeLinecap="round"
+                opacity="0.7"
+              />
+            )}
           </>
         )}
-
-            {emotionalState === "confused" && (
-          <motion.path
-            d="M 68 145 Q 82 138, 100 146 Q 118 152, 132 144"
-            stroke={getStateColor()}
-            strokeWidth="3.5"
-            fill="none"
-            strokeLinecap="round"
-            animate={{
-              d: [
-                "M 68 145 Q 82 138, 100 146 Q 118 152, 132 144",
-                "M 68 145 Q 82 140, 100 145 Q 118 150, 132 144",
-                "M 68 145 Q 82 138, 100 146 Q 118 152, 132 144"
-              ]
-            }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-        )}
-
-            {emotionalState === "surprised" && (
-          <motion.ellipse
-            cx="100"
-            cy="148"
-            rx="14"
-            ry="18"
-            stroke={getStateColor()}
-            strokeWidth="3.5"
-            fill="hsl(220 20% 8%)"
-            initial={{ scale: 0 }}
-            animate={{ 
-              scale: [1, 1.05, 1],
-              ry: [18, 20, 18]
-            }}
-            transition={{ 
-              scale: { duration: 0.3 },
-              ry: { duration: 0.5, repeat: Infinity }
-            }}
-          />
-        )}
-
-        {/* Neutral Mouth */}
-            {emotionalState === "neutral" && (
-          <motion.line
-            x1="80"
-            y1="145"
-            x2="120"
-            y2="145"
-            stroke={getStateColor()}
-            strokeWidth="3"
-            strokeLinecap="round"
-            opacity="0.7"
-          />
-        )}
-
-            {emotionalState === "thinking" && (
-          <motion.line
-            x1="80"
-            y1="145"
-            x2="120"
-            y2="148"
-            stroke={getStateColor()}
-            strokeWidth="3"
-            strokeLinecap="round"
-            opacity="0.7"
-          />
-            )}
-        **</>
-        )}**
 
         {/* Speaking Mouth - Dynamic Shape-Shifting */}
         {isSpeaking && (
           <>
-            {/* Determine mouth shape based on audio level ranges */}
-            {/* Fallback: If audioLevel is very low but speaking, use a default animation */}
+            {/* Case 1: Low Volume (< 0.3) */}
             {finalAmplifiedLevel < 0.3 && (
-              /* Small circle mouth for quiet sounds */
-              <>
-                <motion.circle
-                  cx="100"
+              <>
+                <motion.circle
+                  cx="100"
                   cy={145 + (isSpeaking ? finalAmplifiedLevel * 2.5 * 12 : 0)}
                   r={8 + finalAmplifiedLevel * 20}
-                  fill="hsl(220 20% 5%)"
-                  stroke={getStateColor()}
-                  strokeWidth="3"
-                  style={{
-                    filter: `drop-shadow(0 0 8px ${getStateColor()})`
-                  }}
-                  animate={{
-                    r: 8 + finalAmplifiedLevel * 20,
-                    cy: 145 + jawOpenness * 12,
-                  }}
-                  transition={{
-                    duration: 0.05,
-                    ease: "linear",
-                  }}
-                />
-                <motion.circle
-                  cx="100"
+                  fill="hsl(220 20% 5%)"
+                  stroke={getStateColor()}
+                  strokeWidth="3"
+                  style={{
+                    filter: `drop-shadow(0 0 8px ${getStateColor()})`
+                  }}
+                  animate={{
+                    r: 8 + finalAmplifiedLevel * 20,
+                    cy: 145 + jawOpenness * 12,
+                  }}
+                  transition={{
+                    duration: 0.05,
+                    ease: "linear",
+                  }}
+                />
+                <motion.circle
+                  cx="100"
                   cy={145 + (isSpeaking ? finalAmplifiedLevel * 2.5 * 12 : 0)}
-                  r={5 + finalAmplifiedLevel * 12}
-                  fill={getStateColor()}
-                  opacity={0.5 + finalAmplifiedLevel * 0.5}
-                />
-              </>
-            )}
+                  r={5 + finalAmplifiedLevel * 12}
+                  fill={getStateColor()}
+                  opacity={0.5 + finalAmplifiedLevel * 0.5}
+                />
+              </>
+            )}
 
-            {finalAmplifiedLevel >= 0.3 && finalAmplifiedLevel < 0.6 && (
-              /* Rectangle/Square mouth for mid-range sounds */
-              <>
-                <motion.rect
-                  x={100 - (15 + finalAmplifiedLevel * 20)}
-                  y={140 + jawOpenness * 10}
-                  width={(15 + finalAmplifiedLevel * 20) * 2}
-                  height={10 + finalAmplifiedLevel * 25}
-                  rx="4"
-                  fill="hsl(220 20% 5%)"
-                  stroke={getStateColor()}
-                  strokeWidth="3"
-                  style={{
-                    filter: `drop-shadow(0 0 8px ${getStateColor()})`
-                  }}
-                  animate={{
-                    width: (15 + finalAmplifiedLevel * 20) * 2,
-                    height: 10 + finalAmplifiedLevel * 25,
-                    x: 100 - (15 + finalAmplifiedLevel * 20),
-                    y: 140 + jawOpenness * 10,
-                  }}
-                  transition={{
-                    duration: 0.05,
-                    ease: "linear",
-                  }}
-                />
-                <motion.rect
-                  x={100 - (10 + finalAmplifiedLevel * 15)}
-                  y={142 + jawOpenness * 10}
-                  width={(10 + finalAmplifiedLevel * 15) * 2}
-                  height={6 + finalAmplifiedLevel * 18}
-                  rx="3"
-                  fill={getStateColor()}
-                  opacity={0.4 + finalAmplifiedLevel * 0.4}
-                />
-                {/* Teeth line for mid-range */}
-                <motion.line
-                  x1={100 - (12 + finalAmplifiedLevel * 15)}
-                  y1={143 + jawOpenness * 8}
-                  x2={100 + (12 + finalAmplifiedLevel * 15)}
-                  y2={143 + jawOpenness * 8}
-                  stroke="hsl(220 20% 85%)"
-                  strokeWidth="2"
-                  opacity="0.7"
-                />
-              </>
-            )}
+            {/* Case 2: Mid Volume (0.3 - 0.6) */}
+            {finalAmplifiedLevel >= 0.3 && finalAmplifiedLevel < 0.6 && (
+              <>
+                <motion.rect
+                  x={100 - (15 + finalAmplifiedLevel * 20)}
+                  y={140 + jawOpenness * 10}
+                  width={(15 + finalAmplifiedLevel * 20) * 2}
+                  height={10 + finalAmplifiedLevel * 25}
+                  rx="4"
+                  fill="hsl(220 20% 5%)"
+                  stroke={getStateColor()}
+                  strokeWidth="3"
+                  style={{
+                    filter: `drop-shadow(0 0 8px ${getStateColor()})`
+                  }}
+                  animate={{
+                    width: (15 + finalAmplifiedLevel * 20) * 2,
+                    height: 10 + finalAmplifiedLevel * 25,
+                    x: 100 - (15 + finalAmplifiedLevel * 20),
+                    y: 140 + jawOpenness * 10,
+                  }}
+                  transition={{
+                    duration: 0.05,
+                    ease: "linear",
+                  }}
+                />
+                <motion.rect
+                  x={100 - (10 + finalAmplifiedLevel * 15)}
+                  y={142 + jawOpenness * 10}
+                  width={(10 + finalAmplifiedLevel * 15) * 2}
+                  height={6 + finalAmplifiedLevel * 18}
+                  rx="3"
+                  fill={getStateColor()}
+                  opacity={0.4 + finalAmplifiedLevel * 0.4}
+                />
+                <motion.line
+                  x1={100 - (12 + finalAmplifiedLevel * 15)}
+                  y1={143 + jawOpenness * 8}
+                  x2={100 + (12 + finalAmplifiedLevel * 15)}
+                  y2={143 + jawOpenness * 8}
+                  stroke="hsl(220 20% 85%)"
+                  strokeWidth="2"
+                  opacity="0.7"
+                />
+              </>
+            )}
 
-            {finalAmplifiedLevel >= 0.6 && (
-              /* Triangle/Diamond mouth for loud sounds */
-              <>
-                <motion.path
-                  d={`M 100 ${135 + jawOpenness * 8} 
-                      L ${100 - (25 + finalAmplifiedLevel * 30)} ${148 + jawOpenness * 15}
-                      L 100 ${158 + jawOpenness * 22}
-                      L ${100 + (25 + finalAmplifiedLevel * 30)} ${148 + jawOpenness * 15}
-                      Z`}
-                  fill="hsl(220 20% 5%)"
-                  stroke={getStateColor()}
-                  strokeWidth="3"
-                  style={{
-                    filter: `drop-shadow(0 0 12px ${getStateColor()})`
-                  }}
-                  animate={{
-                    d: `M 100 ${135 + jawOpenness * 8} 
-                        L ${100 - (25 + finalAmplifiedLevel * 30)} ${148 + jawOpenness * 15}
-                        L 100 ${158 + jawOpenness * 22}
-                        L ${100 + (25 + finalAmplifiedLevel * 30)} ${148 + jawOpenness * 15}
-                        Z`,
-                  }}
-                  transition={{
-                    duration: 0.05,
-                    ease: "linear",
-                  }}
-                />
-                <motion.path
-                  d={`M 100 ${140 + jawOpenness * 8} 
-                      L ${100 - (18 + finalAmplifiedLevel * 22)} ${148 + jawOpenness * 120}
-                      L 100 ${153 + jawOpenness * 200}
-                      L ${100 + (18 + finalAmplifiedLevel * 22)} ${148 + jawOpenness * 120}
-                      Z`}
-                  fill={getStateColor()}
-                  opacity={0.5 + finalAmplifiedLevel * 0.5}
-                />
-                {/* Teeth for loud sounds */}
-                <motion.line
-                  x1={100 - (15 + finalAmplifiedLevel * 20)}
-                  y1={145 + jawOpenness * 10}
-                  x2={100 + (15 + finalAmplifiedLevel * 20)}
-                  y2={145 + jawOpenness * 10}
-                  stroke="hsl(220 20% 85%)"
-                  strokeWidth="2.5"
-                  opacity="0.8"
-                />
-              </>
-            )}
-          </>
+            {/* Case 3: High Volume (>= 0.6) */}
+            {/* FIX 3: Fixed the coordinate math here. Removed the accidental extra zeros (120 -> 12, 200 -> 20) */}
+            {finalAmplifiedLevel >= 0.6 && (
+              <>
+                <motion.path
+                  d={`M 100 ${135 + jawOpenness * 8} 
+                      L ${100 - (25 + finalAmplifiedLevel * 30)} ${148 + jawOpenness * 15}
+                      L 100 ${158 + jawOpenness * 22}
+                      L ${100 + (25 + finalAmplifiedLevel * 30)} ${148 + jawOpenness * 15}
+                      Z`}
+                  fill="hsl(220 20% 5%)"
+                  stroke={getStateColor()}
+                  strokeWidth="3"
+                  style={{
+                    filter: `drop-shadow(0 0 12px ${getStateColor()})`
+                  }}
+                  animate={{
+                    d: `M 100 ${135 + jawOpenness * 8} 
+                        L ${100 - (25 + finalAmplifiedLevel * 30)} ${148 + jawOpenness * 12}
+                        L 100 ${158 + jawOpenness * 20}
+                        L ${100 + (25 + finalAmplifiedLevel * 30)} ${148 + jawOpenness * 12}
+                        Z`,
+                  }}
+                  transition={{
+                    duration: 0.05,
+                    ease: "linear",
+                  }}
+                />
+                <motion.path
+                  d={`M 100 ${140 + jawOpenness * 8} 
+                      L ${100 - (18 + finalAmplifiedLevel * 22)} ${148 + jawOpenness * 12}
+                      L 100 ${153 + jawOpenness * 20}
+                      L ${100 + (18 + finalAmplifiedLevel * 22)} ${148 + jawOpenness * 12}
+                      Z`}
+                  fill={getStateColor()}
+                  opacity={0.5 + finalAmplifiedLevel * 0.5}
+                />
+                <motion.line
+                  x1={100 - (15 + finalAmplifiedLevel * 20)}
+                  y1={145 + jawOpenness * 10}
+                  x2={100 + (15 + finalAmplifiedLevel * 20)}
+                  y2={145 + jawOpenness * 10}
+                  stroke="hsl(220 20% 85%)"
+                  strokeWidth="2.5"
+                  opacity="0.8"
+                />
+              </>
+            )}
+          </>
         )}
       </g>
 
-      {/* Voice Indicator - Glowing effect when speaking (unchanged) */}
+      {/* Voice Indicator - Glowing effect when speaking */}
       {isSpeaking && (
         <motion.circle
           cx="100"
@@ -588,7 +581,7 @@ const CustomRobotFace = ({
         />
       )}
 
-      {/* Bottom Accent Line (unchanged) */}
+      {/* Bottom Accent Line */}
       <line x1="40" y1="165" x2="160" y2="165" stroke="url(#accentGradient)" strokeWidth="2" />
     </svg>
   );
